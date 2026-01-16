@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'auth_controller.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.controller});
+
+  final AuthController? controller;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _controller = AuthController();
+  late final AuthController _controller;
+  late final bool _ownsController;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -18,12 +21,21 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+      _ownsController = false;
+    } else {
+      _controller = AuthController();
+      _ownsController = true;
+    }
     _controller.initialize();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_ownsController) {
+      _controller.dispose();
+    }
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
