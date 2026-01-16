@@ -1,3 +1,4 @@
 class ApiConfig {
-  static const String baseUrl = 'https://<domain>/api/v1';
+  static const String baseUrl =
+      'https://sciencecomputer.profesionalservis.my.id/api/v1';
 }
