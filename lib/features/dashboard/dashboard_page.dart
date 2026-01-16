@@ -53,8 +53,7 @@ class DashboardPage extends ConsumerWidget {
             child: RefreshIndicator(
               onRefresh: () async {
                 await Future.wait([
-                  ref.refresh(dashboardOverviewProvider.future),
-                  ref.refresh(dashboardRecentActivityProvider.future),
+                  ref.refresh(dashboardSummaryProvider.future),
                 ]);
               },
               child: SingleChildScrollView(
@@ -73,7 +72,7 @@ class DashboardPage extends ConsumerWidget {
 
                     OverviewCards(
                       data: overview,
-                      onRetry: () => ref.invalidate(dashboardOverviewProvider),
+                      onRetry: () => ref.invalidate(dashboardSummaryProvider),
                     ),
 
                     const SizedBox(height: 28),
@@ -94,8 +93,7 @@ class DashboardPage extends ConsumerWidget {
 
                     RecentActivity(
                       data: recentActivity,
-                      onRetry: () =>
-                          ref.invalidate(dashboardRecentActivityProvider),
+                      onRetry: () => ref.invalidate(dashboardSummaryProvider),
                     ),
                   ],
                 ),

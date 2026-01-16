@@ -30,11 +30,6 @@ class RecentActivity extends StatelessWidget {
             title: 'Recent Transactions',
             items: activity.recentTransactions,
           ),
-          const SizedBox(height: 16),
-          _ActivitySection(
-            title: 'Recent Attendance Logs',
-            items: activity.recentAttendanceLogs,
-          ),
         ],
       ),
     );

@@ -28,22 +28,16 @@ class OverviewCards extends StatelessWidget {
         data: (overview) {
           final cards = [
             _OverviewCardData(
-              title: 'Total Customers',
-              value: '${overview.totalCustomers}',
-              icon: Icons.people_alt_outlined,
+              title: 'Today Sales',
+              value: _formatCurrency(overview.todaySales),
+              icon: Icons.payments_outlined,
               colors: const [Color(0xFFEFF6FF), Color(0xFFDCEBFF)],
             ),
             _OverviewCardData(
-              title: 'Active Services',
-              value: '${overview.activeServices}',
-              icon: Icons.build_circle_outlined,
-              colors: const [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
-            ),
-            _OverviewCardData(
-              title: 'Attendance Today',
-              value: '${overview.attendanceToday}',
-              icon: Icons.fingerprint_outlined,
-              colors: const [Color(0xFFF5F3FF), Color(0xFFEDE9FE)],
+              title: 'Monthly Sales',
+              value: _formatCurrency(overview.monthlySales),
+              icon: Icons.bar_chart_outlined,
+              colors: const [Color(0xFFF0F9FF), Color(0xFFDBEAFE)],
             ),
             _OverviewCardData(
               title: 'Transactions Today',
@@ -52,9 +46,27 @@ class OverviewCards extends StatelessWidget {
               colors: const [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
             ),
             _OverviewCardData(
-              title: 'Open Cash Session',
-              value: '${overview.openCashSessions}',
-              icon: Icons.point_of_sale_outlined,
+              title: 'Total Customers',
+              value: '${overview.totalCustomers}',
+              icon: Icons.people_alt_outlined,
+              colors: const [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
+            ),
+            _OverviewCardData(
+              title: 'Total Products',
+              value: '${overview.totalProducts}',
+              icon: Icons.inventory_2_outlined,
+              colors: const [Color(0xFFF5F3FF), Color(0xFFEDE9FE)],
+            ),
+            _OverviewCardData(
+              title: 'Active Services',
+              value: '${overview.activeServices}',
+              icon: Icons.build_circle_outlined,
+              colors: const [Color(0xFFFFF1F2), Color(0xFFFEE2E2)],
+            ),
+            _OverviewCardData(
+              title: 'Outstanding Purchases',
+              value: _formatCurrency(overview.outstandingPurchases),
+              icon: Icons.account_balance_wallet_outlined,
               colors: const [Color(0xFFE6FFFB), Color(0xFFCCFBF1)],
             ),
           ];
@@ -68,6 +80,16 @@ class OverviewCards extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _formatCurrency(int value) {
+    return 'Rp ${_formatNumber(value)}';
+  }
+
+  String _formatNumber(int value) {
+    return value
+        .toString()
+        .replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]}.');
   }
 }
 
