@@ -11,7 +11,7 @@ class CustomerRemoteDataSource {
 
   Future<CustomerPage> fetchCustomers({String? search, int page = 1, int? perPage}) async {
     final response = await _client.get<Map<String, dynamic>>(
-      '/customers',
+      'customers',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         'page': page,
@@ -23,7 +23,7 @@ class CustomerRemoteDataSource {
   }
 
   Future<Customer> fetchCustomer(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('/customers/$id');
+    final response = await _client.get<Map<String, dynamic>>('customers/$id');
     final payload = _ensureMap(response.data, message: 'Invalid customer response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {
@@ -35,7 +35,7 @@ class CustomerRemoteDataSource {
 
   Future<Customer> createCustomer(Customer customer) async {
     final response = await _client.post<Map<String, dynamic>>(
-      '/customers',
+      'customers',
       data: customer.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid customer response');
@@ -62,7 +62,7 @@ class CustomerRemoteDataSource {
   }
 
   Future<void> deleteCustomer(String id) async {
-    await _client.delete<void>('/customers/$id');
+    await _client.delete<void>('customers/$id');
   }
 
   Map<String, dynamic> _ensureMap(
