@@ -130,7 +130,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_controller.customers.isEmpty) {
+    if (_controller.customers.isEmpty &&
+        _controller.errorMessage == null &&
+        _controller.hasLoadedSuccessfully) {
       return ListView(
         padding: const EdgeInsets.all(32),
         children: [

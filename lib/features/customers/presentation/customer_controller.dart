@@ -24,6 +24,7 @@ class CustomerController extends ChangeNotifier {
   int _perPage = 15;
   Customer? _customer;
   Map<String, List<String>> _fieldErrors = const {};
+  bool _hasLoadedSuccessfully = false;
 
   bool get isLoading => _loading;
   bool get isSubmitting => _submitting;
@@ -37,6 +38,7 @@ class CustomerController extends ChangeNotifier {
   int get perPage => _perPage;
   Customer? get customer => _customer;
   Map<String, List<String>> get fieldErrors => _fieldErrors;
+  bool get hasLoadedSuccessfully => _hasLoadedSuccessfully;
 
   Future<void> loadCustomers({String? search, int page = 1, int? perPage}) async {
     _setLoading(true);
@@ -57,14 +59,12 @@ class CustomerController extends ChangeNotifier {
       _customers = result.data;
       _meta = result.meta;
       _links = result.links;
+      _hasLoadedSuccessfully = true;
     } catch (error) {
       _handleError(
         error,
         fallbackMessage: 'Unable to load customers. Please try again.',
       );
-      _customers = const [];
-      _meta = null;
-      _links = null;
     } finally {
       _setLoading(false);
     }
