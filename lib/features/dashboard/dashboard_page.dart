@@ -24,6 +24,8 @@ class DashboardPage extends ConsumerWidget {
 
   final AuthController authController;
 
+  static const _pageBackground = Color(0xFFF4F6FA);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final overview = ref.watch(dashboardOverviewProvider);
@@ -37,7 +39,7 @@ class DashboardPage extends ConsumerWidget {
         return false;
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: _pageBackground,
         body: SafeArea(
           child: RefreshIndicator(
             onRefresh: () async {
@@ -48,7 +50,7 @@ class DashboardPage extends ConsumerWidget {
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -57,24 +59,34 @@ class DashboardPage extends ConsumerWidget {
                     onNotificationTap: () {},
                     onLogout: () => authController.logout(),
                   ),
-                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 24),
+
                   OverviewCards(
                     data: overview,
                     onRetry: () => ref.invalidate(dashboardOverviewProvider),
                   ),
-                  const SizedBox(height: 24),
+
+                  const SizedBox(height: 28),
+
                   MenuGrid(sections: _buildMenuSections(context)),
-                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 20),
+
                   Text(
                     'Recent Activity',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1F2937), // abu gelap modern
                         ),
                   ),
+
                   const SizedBox(height: 12),
+
                   RecentActivity(
                     data: recentActivity,
-                    onRetry: () => ref.invalidate(dashboardRecentActivityProvider),
+                    onRetry: () =>
+                        ref.invalidate(dashboardRecentActivityProvider),
                   ),
                 ],
               ),
@@ -89,6 +101,7 @@ class DashboardPage extends ConsumerWidget {
     return [
       DashboardMenuSection(
         title: 'MASTER DATA',
+        titleStyle: _sectionTitleStyle(),
         items: [
           DashboardMenuItem(
             label: 'Customers',
@@ -119,6 +132,7 @@ class DashboardPage extends ConsumerWidget {
       ),
       DashboardMenuSection(
         title: 'OPERATIONAL',
+        titleStyle: _sectionTitleStyle(),
         items: [
           DashboardMenuItem(
             label: 'Services',
@@ -158,6 +172,7 @@ class DashboardPage extends ConsumerWidget {
       ),
       DashboardMenuSection(
         title: 'FINANCE',
+        titleStyle: _sectionTitleStyle(),
         items: [
           DashboardMenuItem(
             label: 'Transactions',
@@ -192,6 +207,7 @@ class DashboardPage extends ConsumerWidget {
       ),
       DashboardMenuSection(
         title: 'SYSTEM',
+        titleStyle: _sectionTitleStyle(),
         items: [
           DashboardMenuItem(
             label: 'Users',
@@ -230,6 +246,15 @@ class DashboardPage extends ConsumerWidget {
     ];
   }
 
+  TextStyle _sectionTitleStyle() {
+    return const TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.8,
+      color: Color(0xFF6B7280), // abu profesional
+    );
+  }
+
   void _openPage(BuildContext context, Widget page) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => page),
@@ -248,7 +273,12 @@ class ModulePlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      backgroundColor: const Color(0xFFF4F6FA),
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+      ),
       body: Center(
         child: Text(
           'Halaman $title belum tersedia.',
