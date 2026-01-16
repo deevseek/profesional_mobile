@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
 import '../errors/api_exception.dart';
@@ -19,11 +20,16 @@ class DioClient {
 
     _dio.interceptors.add(_authInterceptor);
     _dio.interceptors.add(InterceptorsWrapper(
-      onError: (DioException error, handler) {
+      onError: (DioException error, handler) async {
+        if (error.response?.statusCode == 401) {
+          await _clearAuthToken();
+        }
         handler.reject(_mapDioError(error));
       },
     ));
   }
+
+  static const _tokenKey = 'auth_token';
 
   final Dio _dio;
   final AuthInterceptor _authInterceptor;
@@ -150,5 +156,10 @@ class DioClient {
           error: ApiException('Request failed', statusCode: statusCode),
         );
     }
+  }
+
+  Future<void> _clearAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
   }
 }
