@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/auth/presentation/auth_controller.dart';
+import 'features/dashboard/dashboard_page.dart';
 import 'features/auth/presentation/login_page.dart';
-import 'features/customers/presentation/customer_list_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Customers',
+      title: 'Profesional Servis',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
@@ -61,7 +62,7 @@ class _AuthGateState extends State<AuthGate> {
               body: Center(child: CircularProgressIndicator()),
             );
           case AuthStatus.authenticated:
-            return const CustomerListPage();
+            return DashboardPage(authController: _authController);
           case AuthStatus.unauthenticated:
             return LoginPage(controller: _authController);
         }
