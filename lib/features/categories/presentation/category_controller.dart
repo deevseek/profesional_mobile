@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier;
 
 import '../../../core/errors/api_exception.dart';
 import '../data/category_repository_impl.dart';
