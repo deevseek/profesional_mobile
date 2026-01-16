@@ -29,24 +29,33 @@ class Customer {
     );
   }
 
-  Map<String, dynamic> toPayload({bool includeNulls = false}) {
-    final payload = <String, dynamic>{
-      'name': name,
-    };
+  Map<String, dynamic> toPayload({
+    bool includeNulls = false,
+    bool includeName = true,
+  }) {
+    final payload = <String, dynamic>{};
+    final sanitizedName = _sanitize(name);
+    if (includeName && sanitizedName != null) {
+      payload['name'] = sanitizedName;
+    }
+
+    final sanitizedEmail = _sanitize(email);
+    final sanitizedPhone = _sanitize(phone);
+    final sanitizedAddress = _sanitize(address);
 
     if (includeNulls) {
-      payload['email'] = email;
-      payload['phone'] = phone;
-      payload['address'] = address;
+      payload['email'] = sanitizedEmail;
+      payload['phone'] = sanitizedPhone;
+      payload['address'] = sanitizedAddress;
     } else {
-      if (email != null) {
-        payload['email'] = email;
+      if (sanitizedEmail != null) {
+        payload['email'] = sanitizedEmail;
       }
-      if (phone != null) {
-        payload['phone'] = phone;
+      if (sanitizedPhone != null) {
+        payload['phone'] = sanitizedPhone;
       }
-      if (address != null) {
-        payload['address'] = address;
+      if (sanitizedAddress != null) {
+        payload['address'] = sanitizedAddress;
       }
     }
 
@@ -82,6 +91,17 @@ class Customer {
     }
     final parsed = DateTime.tryParse(value.toString());
     return parsed?.toLocal();
+  }
+
+  static String? _sanitize(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
   }
 }
 
