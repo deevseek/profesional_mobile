@@ -19,7 +19,12 @@ class CustomerRemoteDataSource {
       },
     );
 
-    return CustomerPage.fromJson(_ensureMap(response.data, message: 'Invalid customers response'));
+    final data = response.data;
+    if (data is List) {
+      return CustomerPage.fromJson({'data': data});
+    }
+
+    return CustomerPage.fromJson(_ensureMap(data, message: 'Invalid customers response'));
   }
 
   Future<Customer> fetchCustomer(String id) async {
