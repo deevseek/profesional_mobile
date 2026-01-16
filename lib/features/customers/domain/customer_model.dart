@@ -159,9 +159,10 @@ class CustomerPage {
   final CustomerPaginationLinks links;
 
   factory CustomerPage.fromJson(Map<String, dynamic> json) {
-    final dataList = json['data'];
-    final metaJson = json['meta'];
-    final linksJson = json['links'];
+    final dataSource = json['data'];
+    final dataList = _extractList(dataSource) ?? _extractList(json['customers']);
+    final metaJson = _extractMeta(json, dataSource);
+    final linksJson = _extractLinks(json, dataSource);
 
     return CustomerPage(
       data: dataList is List
@@ -182,5 +183,52 @@ class CustomerPage {
           ? CustomerPaginationLinks.fromJson(linksJson)
           : const CustomerPaginationLinks(),
     );
+  }
+
+  static dynamic _extractList(dynamic source) {
+    if (source is List) {
+      return source;
+    }
+    if (source is Map<String, dynamic>) {
+      final nested = source['data'] ?? source['customers'];
+      if (nested is List) {
+        return nested;
+      }
+    }
+    return null;
+  }
+
+  static Map<String, dynamic>? _extractMeta(
+    Map<String, dynamic> json,
+    dynamic dataSource,
+  ) {
+    final meta = json['meta'];
+    if (meta is Map<String, dynamic>) {
+      return meta;
+    }
+    if (dataSource is Map<String, dynamic>) {
+      final nestedMeta = dataSource['meta'];
+      if (nestedMeta is Map<String, dynamic>) {
+        return nestedMeta;
+      }
+    }
+    return null;
+  }
+
+  static Map<String, dynamic>? _extractLinks(
+    Map<String, dynamic> json,
+    dynamic dataSource,
+  ) {
+    final links = json['links'];
+    if (links is Map<String, dynamic>) {
+      return links;
+    }
+    if (dataSource is Map<String, dynamic>) {
+      final nestedLinks = dataSource['links'];
+      if (nestedLinks is Map<String, dynamic>) {
+        return nestedLinks;
+      }
+    }
+    return null;
   }
 }
