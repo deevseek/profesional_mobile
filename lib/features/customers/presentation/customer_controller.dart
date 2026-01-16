@@ -58,7 +58,10 @@ class CustomerController extends ChangeNotifier {
       _meta = result.meta;
       _links = result.links;
     } catch (error) {
-      _errorMessage = 'Unable to load customers. Please try again.';
+      _handleError(
+        error,
+        fallbackMessage: 'Unable to load customers. Please try again.',
+      );
       _customers = const [];
       _meta = null;
       _links = null;
@@ -71,10 +74,11 @@ class CustomerController extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     _successMessage = null;
+    _fieldErrors = const {};
     try {
       _customer = await _repository.getCustomer(id);
     } catch (error) {
-      _errorMessage = 'Unable to load customer details.';
+      _handleError(error, fallbackMessage: 'Unable to load customer details.');
       _customer = null;
     } finally {
       _setLoading(false);
