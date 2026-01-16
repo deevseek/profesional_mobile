@@ -24,8 +24,8 @@ class DashboardPage extends ConsumerWidget {
 
   final AuthController authController;
 
-  static const _pageBackgroundTop = Color(0xFFE8EEF7);
-  static const _pageBackgroundBottom = Color(0xFFDCE4F2);
+  static const _pageBackgroundTop = Color(0xFFF6F8FB);
+  static const _pageBackgroundBottom = Color(0xFFECEFF5);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,7 +59,7 @@ class DashboardPage extends ConsumerWidget {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -69,7 +69,7 @@ class DashboardPage extends ConsumerWidget {
                       onLogout: () => authController.logout(),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
 
                     OverviewCards(
                       data: overview,
@@ -80,17 +80,17 @@ class DashboardPage extends ConsumerWidget {
 
                     MenuGrid(sections: _buildMenuSections(context)),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     Text(
-                      'Recent Activity',
+                      'Aktivitas Terbaru',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: const Color(0xFF1F2937), // abu gelap modern
                           ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     RecentActivity(
                       data: recentActivity,
@@ -261,7 +261,7 @@ class DashboardPage extends ConsumerWidget {
       fontSize: 12,
       fontWeight: FontWeight.w700,
       letterSpacing: 0.8,
-      color: Color(0xFF6B7280), // abu profesional
+      color: Color(0xFF64748B), // abu profesional
     );
   }
 
@@ -286,7 +286,7 @@ class ModulePlaceholderPage extends StatelessWidget {
       backgroundColor: DashboardPage._pageBackgroundTop,
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFFF0F4FA),
+        backgroundColor: const Color(0xFFF7F8FC),
         elevation: 0.5,
       ),
       body: Center(
