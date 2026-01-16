@@ -50,7 +50,7 @@ class CustomerRemoteDataSource {
   Future<Customer> updateCustomer(String id, Customer customer) async {
     final response = await _client.patch<Map<String, dynamic>>(
       '/customers/$id',
-      data: customer.toPayload(includeNulls: true),
+      data: customer.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid customer response');
     final data = payload['data'];
