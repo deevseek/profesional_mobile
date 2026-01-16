@@ -4,6 +4,7 @@ abstract class CustomerRepository {
   Future<CustomerPage> getCustomers({
     String? search,
     int page = 1,
+    int? perPage,
   });
 
   Future<Customer> getCustomer(String id);

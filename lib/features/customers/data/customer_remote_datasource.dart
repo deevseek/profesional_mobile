@@ -9,12 +9,13 @@ class CustomerRemoteDataSource {
 
   final DioClient _client;
 
-  Future<CustomerPage> fetchCustomers({String? search, int page = 1}) async {
+  Future<CustomerPage> fetchCustomers({String? search, int page = 1, int? perPage}) async {
     final response = await _client.get<Map<String, dynamic>>(
       '/customers',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         'page': page,
+        if (perPage != null) 'per_page': perPage,
       },
     );
 

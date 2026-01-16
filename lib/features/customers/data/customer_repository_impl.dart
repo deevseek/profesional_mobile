@@ -9,8 +9,12 @@ class CustomerRepositoryImpl implements CustomerRepository {
   final CustomerRemoteDataSource _remoteDataSource;
 
   @override
-  Future<CustomerPage> getCustomers({String? search, int page = 1}) {
-    return _remoteDataSource.fetchCustomers(search: search, page: page);
+  Future<CustomerPage> getCustomers({String? search, int page = 1, int? perPage}) {
+    return _remoteDataSource.fetchCustomers(
+      search: search,
+      page: page,
+      perPage: perPage,
+    );
   }
 
   @override
