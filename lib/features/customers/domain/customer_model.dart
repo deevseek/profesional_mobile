@@ -20,7 +20,7 @@ class Customer {
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
       id: '${json['id'] ?? json['customer_id'] ?? ''}',
-      name: '${json['name'] ?? json['full_name'] ?? ''}',
+      name: '${json['name'] ?? json['customer_name'] ?? json['customerName'] ?? json['full_name'] ?? ''}',
       email: json['email']?.toString(),
       phone: json['phone']?.toString(),
       address: json['address']?.toString(),
