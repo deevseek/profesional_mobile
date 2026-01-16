@@ -112,9 +112,6 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         const SizedBox(height: 16),
         _buildSection(context, 'Address', [
           _buildInfoRow('Address', customer.address),
-          _buildInfoRow('City', customer.city),
-          _buildInfoRow('State', customer.state),
-          _buildInfoRow('Postal code', customer.postalCode),
         ]),
       ],
     );
