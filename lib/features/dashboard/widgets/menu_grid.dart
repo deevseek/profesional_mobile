@@ -4,10 +4,12 @@ class DashboardMenuSection {
   const DashboardMenuSection({
     required this.title,
     required this.items,
+    this.titleStyle,
   });
 
   final String title;
   final List<DashboardMenuItem> items;
+  final TextStyle? titleStyle;
 }
 
 class DashboardMenuItem {
@@ -45,10 +47,11 @@ class MenuGrid extends StatelessWidget {
                 children: [
                   Text(
                     section.title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: Colors.grey.shade700,
-                        ),
+                    style: section.titleStyle ??
+                        Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: Colors.grey.shade700,
+                            ),
                   ),
                   const SizedBox(height: 12),
                   GridView.builder(
