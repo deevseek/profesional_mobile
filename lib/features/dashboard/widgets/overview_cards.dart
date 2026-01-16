@@ -16,7 +16,7 @@ class OverviewCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 150,
+      height: 170,
       child: data.when(
         loading: () => ListView.separated(
           scrollDirection: Axis.horizontal,
@@ -31,31 +31,31 @@ class OverviewCards extends StatelessWidget {
               title: 'Total Customers',
               value: '${overview.totalCustomers}',
               icon: Icons.people_alt_outlined,
-              colors: const [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+              colors: const [Color(0xFFEFF6FF), Color(0xFFDCEBFF)],
             ),
             _OverviewCardData(
               title: 'Active Services',
               value: '${overview.activeServices}',
               icon: Icons.build_circle_outlined,
-              colors: const [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+              colors: const [Color(0xFFF0FDF4), Color(0xFFDCFCE7)],
             ),
             _OverviewCardData(
               title: 'Attendance Today',
               value: '${overview.attendanceToday}',
               icon: Icons.fingerprint_outlined,
-              colors: const [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
+              colors: const [Color(0xFFF5F3FF), Color(0xFFEDE9FE)],
             ),
             _OverviewCardData(
               title: 'Transactions Today',
               value: '${overview.transactionsToday}',
               icon: Icons.receipt_long_outlined,
-              colors: const [Color(0xFFFFF8E1), Color(0xFFFFECB3)],
+              colors: const [Color(0xFFFFFBEB), Color(0xFFFEF3C7)],
             ),
             _OverviewCardData(
               title: 'Open Cash Session',
               value: '${overview.openCashSessions}',
               icon: Icons.point_of_sale_outlined,
-              colors: const [Color(0xFFE0F7FA), Color(0xFFB2EBF2)],
+              colors: const [Color(0xFFE6FFFB), Color(0xFFCCFBF1)],
             ),
           ];
 
@@ -94,20 +94,21 @@ class _OverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      width: 180,
-      padding: const EdgeInsets.all(16),
+      width: 190,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: data.colors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -115,25 +116,34 @@ class _OverviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: Colors.white.withValues(alpha: 0.85),
               shape: BoxShape.circle,
             ),
             child: Icon(data.icon, size: 20, color: theme.colorScheme.primary),
           ),
-          const Spacer(),
+          const SizedBox(height: 18),
           Text(
             data.value,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
+              color: const Color(0xFF0F172A),
             ),
           ),
           const SizedBox(height: 4),
           Text(
             data.title,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.grey.shade700,
+              color: const Color(0xFF475569),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            'Lihat detail',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: const Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -148,11 +158,12 @@ class _OverviewSkeletonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 180,
-      padding: const EdgeInsets.all(16),
+      width: 190,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,16 +172,16 @@ class _OverviewSkeletonCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Colors.grey.shade200,
               shape: BoxShape.circle,
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 18),
           Container(
             width: 60,
             height: 20,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -179,7 +190,7 @@ class _OverviewSkeletonCard extends StatelessWidget {
             width: 120,
             height: 14,
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(8),
             ),
           ),
@@ -198,10 +209,11 @@ class _OverviewErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFFFF1F2),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFFECACA)),
       ),
       child: Row(
         children: [
