@@ -17,8 +17,12 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
+  late final TextEditingController _positionController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _joinDateController;
+  late final TextEditingController _baseSalaryController;
   late bool _isActive;
 
   @override
@@ -26,8 +30,14 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
     super.initState();
     final employee = widget.employee;
     _nameController = TextEditingController(text: employee?.name ?? '');
+    _positionController = TextEditingController(text: employee?.position ?? '');
     _emailController = TextEditingController(text: employee?.email ?? '');
     _phoneController = TextEditingController(text: employee?.phone ?? '');
+    _addressController = TextEditingController(text: employee?.address ?? '');
+    _joinDateController = TextEditingController(text: _formatDate(employee?.joinDate));
+    _baseSalaryController = TextEditingController(
+      text: employee?.baseSalary != null ? employee!.baseSalary!.toString() : '',
+    );
     _isActive = employee?.isActive ?? true;
   }
 
@@ -35,8 +45,12 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
   void dispose() {
     _controller.dispose();
     _nameController.dispose();
+    _positionController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
+    _joinDateController.dispose();
+    _baseSalaryController.dispose();
     super.dispose();
   }
 
@@ -80,6 +94,16 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
                   _buildFieldError('name'),
                   const SizedBox(height: 16),
                   TextFormField(
+                    controller: _positionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Position',
+                      prefixIcon: Icon(Icons.work_outline),
+                    ),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  _buildFieldError('position'),
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
                       labelText: 'Email',
@@ -100,6 +124,38 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
                     textInputAction: TextInputAction.done,
                   ),
                   _buildFieldError('phone'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Address',
+                      prefixIcon: Icon(Icons.home_outlined),
+                    ),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  _buildFieldError('address'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _joinDateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Join date (YYYY-MM-DD)',
+                      prefixIcon: Icon(Icons.event_outlined),
+                    ),
+                    keyboardType: TextInputType.datetime,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  _buildFieldError('join_date'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _baseSalaryController,
+                    decoration: const InputDecoration(
+                      labelText: 'Base salary',
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.done,
+                  ),
+                  _buildFieldError('base_salary'),
                   const SizedBox(height: 16),
                   SwitchListTile.adaptive(
                     title: const Text('Active employee'),
@@ -194,8 +250,12 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
     final employee = Employee(
       id: widget.employee?.id ?? '',
       name: _nameController.text.trim(),
+      position: _positionController.text.trim().isEmpty ? null : _positionController.text.trim(),
       email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+      joinDate: _parseDate(_joinDateController.text.trim()),
+      baseSalary: _parseDouble(_baseSalaryController.text.trim()),
       isActive: _isActive,
     );
 
@@ -209,5 +269,30 @@ class _EmployeeFormPageState extends State<EmployeeFormPage> {
     }
 
     Navigator.of(context).pop(true);
+  }
+
+  String _formatDate(DateTime? value) {
+    if (value == null) {
+      return '';
+    }
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  DateTime? _parseDate(String value) {
+    if (value.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(value);
+  }
+
+  double? _parseDouble(String value) {
+    if (value.isEmpty) {
+      return null;
+    }
+    return double.tryParse(value);
   }
 }

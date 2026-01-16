@@ -110,13 +110,32 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
           _buildInfoRow('Phone', employee.phone),
         ]),
         const SizedBox(height: 16),
+        _buildSection(context, 'Employment', [
+          _buildInfoRow('Position', employee.position),
+          _buildInfoRow('Join date', _formatDate(employee.joinDate)),
+          _buildInfoRow('Base salary', _formatSalary(employee.baseSalary)),
+        ]),
+        const SizedBox(height: 16),
+        _buildSection(context, 'Address', [
+          _buildInfoRow('Address', employee.address),
+        ]),
+        const SizedBox(height: 16),
         _buildSection(context, 'Status', [
           _buildInfoRow('Active', employee.isActive ? 'Yes' : 'No'),
         ]),
         const SizedBox(height: 16),
+        _buildSection(context, 'Face recognition', [
+          _buildInfoRow('Signature', employee.faceRecognitionSignature),
+          _buildInfoRow(
+            'Registered at',
+            _formatDateTime(employee.faceRecognitionRegisteredAt),
+          ),
+          _buildInfoRow('Scan path', employee.faceRecognitionScanPath),
+        ]),
+        const SizedBox(height: 16),
         _buildSection(context, 'Timeline', [
-          _buildInfoRow('Created', _formatDate(employee.createdAt)),
-          _buildInfoRow('Updated', _formatDate(employee.updatedAt)),
+          _buildInfoRow('Created', _formatDateTime(employee.createdAt)),
+          _buildInfoRow('Updated', _formatDateTime(employee.updatedAt)),
         ]),
       ],
     );
@@ -202,11 +221,30 @@ class _EmployeeDetailPageState extends State<EmployeeDetailPage> {
     );
   }
 
-  String? _formatDate(DateTime? value) {
+  String? _formatDateTime(DateTime? value) {
     if (value == null) {
       return null;
     }
     return value.toLocal().toString();
+  }
+
+  String? _formatDate(DateTime? value) {
+    if (value == null) {
+      return null;
+    }
+    final local = value.toLocal();
+    final year = local.year.toString().padLeft(4, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  String? _formatSalary(double? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalized = value.toStringAsFixed(value.truncateToDouble() == value ? 0 : 2);
+    return normalized;
   }
 
   Future<void> _confirmDelete(BuildContext context, Employee employee) async {

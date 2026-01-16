@@ -2,18 +2,32 @@ class Employee {
   const Employee({
     required this.id,
     required this.name,
+    this.position,
     this.email,
     this.phone,
+    this.address,
+    this.joinDate,
+    this.baseSalary,
     this.isActive = true,
+    this.faceRecognitionSignature,
+    this.faceRecognitionRegisteredAt,
+    this.faceRecognitionScanPath,
     this.createdAt,
     this.updatedAt,
   });
 
   final String id;
   final String name;
+  final String? position;
   final String? email;
   final String? phone;
+  final String? address;
+  final DateTime? joinDate;
+  final double? baseSalary;
   final bool isActive;
+  final String? faceRecognitionSignature;
+  final DateTime? faceRecognitionRegisteredAt;
+  final String? faceRecognitionScanPath;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -21,9 +35,17 @@ class Employee {
     return Employee(
       id: '${json['id'] ?? json['employee_id'] ?? ''}',
       name: '${json['name'] ?? json['full_name'] ?? ''}',
+      position: json['position']?.toString(),
       email: json['email']?.toString(),
       phone: json['phone']?.toString(),
+      address: json['address']?.toString(),
+      joinDate: _parseDate(json['join_date'] ?? json['joinDate']),
+      baseSalary: _parseDouble(json['base_salary'] ?? json['baseSalary']),
       isActive: _parseBool(json['is_active'] ?? json['isActive'] ?? json['active']),
+      faceRecognitionSignature: json['face_recognition_signature']?.toString(),
+      faceRecognitionRegisteredAt:
+          _parseDate(json['face_recognition_registered_at'] ?? json['faceRecognitionRegisteredAt']),
+      faceRecognitionScanPath: json['face_recognition_scan_path']?.toString(),
       createdAt: _parseDate(json['created_at'] ?? json['createdAt']),
       updatedAt: _parseDate(json['updated_at'] ?? json['updatedAt']),
     );
@@ -32,27 +54,52 @@ class Employee {
   Map<String, dynamic> toPayload() {
     return {
       'name': name,
+      if (position != null) 'position': position,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
+      if (address != null) 'address': address,
+      if (joinDate != null) 'join_date': joinDate!.toIso8601String(),
+      if (baseSalary != null) 'base_salary': baseSalary,
       'is_active': isActive,
+      if (faceRecognitionSignature != null)
+        'face_recognition_signature': faceRecognitionSignature,
+      if (faceRecognitionRegisteredAt != null)
+        'face_recognition_registered_at': faceRecognitionRegisteredAt!.toIso8601String(),
+      if (faceRecognitionScanPath != null)
+        'face_recognition_scan_path': faceRecognitionScanPath,
     };
   }
 
   Employee copyWith({
     String? id,
     String? name,
+    String? position,
     String? email,
     String? phone,
+    String? address,
+    DateTime? joinDate,
+    double? baseSalary,
     bool? isActive,
+    String? faceRecognitionSignature,
+    DateTime? faceRecognitionRegisteredAt,
+    String? faceRecognitionScanPath,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return Employee(
       id: id ?? this.id,
       name: name ?? this.name,
+      position: position ?? this.position,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      address: address ?? this.address,
+      joinDate: joinDate ?? this.joinDate,
+      baseSalary: baseSalary ?? this.baseSalary,
       isActive: isActive ?? this.isActive,
+      faceRecognitionSignature: faceRecognitionSignature ?? this.faceRecognitionSignature,
+      faceRecognitionRegisteredAt:
+          faceRecognitionRegisteredAt ?? this.faceRecognitionRegisteredAt,
+      faceRecognitionScanPath: faceRecognitionScanPath ?? this.faceRecognitionScanPath,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -84,6 +131,16 @@ class Employee {
       return false;
     }
     return normalized == 'true' || normalized == '1' || normalized == 'yes';
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    return double.tryParse(value.toString());
   }
 }
 
