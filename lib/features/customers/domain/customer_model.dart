@@ -29,13 +29,28 @@ class Customer {
     );
   }
 
-  Map<String, dynamic> toPayload() {
-    return {
+  Map<String, dynamic> toPayload({bool includeNulls = false}) {
+    final payload = <String, dynamic>{
       'name': name,
-      if (email != null) 'email': email,
-      if (phone != null) 'phone': phone,
-      if (address != null) 'address': address,
     };
+
+    if (includeNulls) {
+      payload['email'] = email;
+      payload['phone'] = phone;
+      payload['address'] = address;
+    } else {
+      if (email != null) {
+        payload['email'] = email;
+      }
+      if (phone != null) {
+        payload['phone'] = phone;
+      }
+      if (address != null) {
+        payload['address'] = address;
+      }
+    }
+
+    return payload;
   }
 
   Customer copyWith({
