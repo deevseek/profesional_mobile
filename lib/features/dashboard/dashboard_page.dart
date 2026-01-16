@@ -24,7 +24,8 @@ class DashboardPage extends ConsumerWidget {
 
   final AuthController authController;
 
-  static const _pageBackground = Color(0xFFF4F6FA);
+  static const _pageBackgroundTop = Color(0xFFE8EEF7);
+  static const _pageBackgroundBottom = Color(0xFFDCE4F2);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -39,56 +40,65 @@ class DashboardPage extends ConsumerWidget {
         return false;
       },
       child: Scaffold(
-        backgroundColor: _pageBackground,
-        body: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              await Future.wait([
-                ref.refresh(dashboardOverviewProvider.future),
-                ref.refresh(dashboardRecentActivityProvider.future),
-              ]);
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  DashboardHeader(
-                    userName: authController.user?.name,
-                    onNotificationTap: () {},
-                    onLogout: () => authController.logout(),
-                  ),
+        backgroundColor: _pageBackgroundTop,
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [_pageBackgroundTop, _pageBackgroundBottom],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await Future.wait([
+                  ref.refresh(dashboardOverviewProvider.future),
+                  ref.refresh(dashboardRecentActivityProvider.future),
+                ]);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DashboardHeader(
+                      userName: authController.user?.name,
+                      onNotificationTap: () {},
+                      onLogout: () => authController.logout(),
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  OverviewCards(
-                    data: overview,
-                    onRetry: () => ref.invalidate(dashboardOverviewProvider),
-                  ),
+                    OverviewCards(
+                      data: overview,
+                      onRetry: () => ref.invalidate(dashboardOverviewProvider),
+                    ),
 
-                  const SizedBox(height: 28),
+                    const SizedBox(height: 28),
 
-                  MenuGrid(sections: _buildMenuSections(context)),
+                    MenuGrid(sections: _buildMenuSections(context)),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  Text(
-                    'Recent Activity',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1F2937), // abu gelap modern
-                        ),
-                  ),
+                    Text(
+                      'Recent Activity',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1F2937), // abu gelap modern
+                          ),
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  RecentActivity(
-                    data: recentActivity,
-                    onRetry: () =>
-                        ref.invalidate(dashboardRecentActivityProvider),
-                  ),
-                ],
+                    RecentActivity(
+                      data: recentActivity,
+                      onRetry: () =>
+                          ref.invalidate(dashboardRecentActivityProvider),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -273,10 +283,10 @@ class ModulePlaceholderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: DashboardPage._pageBackgroundTop,
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF0F4FA),
         elevation: 0.5,
       ),
       body: Center(
