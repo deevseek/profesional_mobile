@@ -2,24 +2,20 @@ class Supplier {
   const Supplier({
     required this.id,
     required this.name,
+    this.contactPerson,
     this.email,
     this.phone,
     this.address,
-    this.city,
-    this.state,
-    this.postalCode,
     this.createdAt,
     this.updatedAt,
   });
 
   final String id;
   final String name;
+  final String? contactPerson;
   final String? email;
   final String? phone;
   final String? address;
-  final String? city;
-  final String? state;
-  final String? postalCode;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -27,12 +23,10 @@ class Supplier {
     return Supplier(
       id: '${json['id'] ?? json['supplier_id'] ?? ''}',
       name: '${json['name'] ?? json['company_name'] ?? ''}',
+      contactPerson: json['contact_person']?.toString() ?? json['contactPerson']?.toString(),
       email: json['email']?.toString(),
       phone: json['phone']?.toString(),
       address: json['address']?.toString(),
-      city: json['city']?.toString(),
-      state: json['state']?.toString(),
-      postalCode: json['postal_code']?.toString() ?? json['zip']?.toString(),
       createdAt: _parseDate(json['created_at'] ?? json['createdAt']),
       updatedAt: _parseDate(json['updated_at'] ?? json['updatedAt']),
     );
@@ -41,36 +35,30 @@ class Supplier {
   Map<String, dynamic> toPayload() {
     return {
       'name': name,
+      if (contactPerson != null) 'contact_person': contactPerson,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
       if (address != null) 'address': address,
-      if (city != null) 'city': city,
-      if (state != null) 'state': state,
-      if (postalCode != null) 'postal_code': postalCode,
     };
   }
 
   Supplier copyWith({
     String? id,
     String? name,
+    String? contactPerson,
     String? email,
     String? phone,
     String? address,
-    String? city,
-    String? state,
-    String? postalCode,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return Supplier(
       id: id ?? this.id,
       name: name ?? this.name,
+      contactPerson: contactPerson ?? this.contactPerson,
       email: email ?? this.email,
       phone: phone ?? this.phone,
       address: address ?? this.address,
-      city: city ?? this.city,
-      state: state ?? this.state,
-      postalCode: postalCode ?? this.postalCode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

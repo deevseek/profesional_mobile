@@ -97,7 +97,7 @@ class _SupplierListPageState extends State<SupplierListPage> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: SearchBar(
         controller: _searchController,
-        hintText: 'Search by name, email, or phone',
+        hintText: 'Search by name, contact person, email, or phone',
         leading: const Icon(Icons.search),
         trailing: [
           if (_searchController.text.isNotEmpty)
@@ -171,6 +171,8 @@ class _SupplierListPageState extends State<SupplierListPage> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (supplier.contactPerson != null && supplier.contactPerson!.isNotEmpty)
+                  Text('Contact: ${supplier.contactPerson}'),
                 if (supplier.email != null && supplier.email!.isNotEmpty)
                   Text(supplier.email!),
                 if (supplier.phone != null && supplier.phone!.isNotEmpty)

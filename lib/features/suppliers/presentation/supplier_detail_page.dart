@@ -106,15 +106,13 @@ class _SupplierDetailPageState extends State<SupplierDetailPage> {
         _buildHeader(context, supplier),
         const SizedBox(height: 24),
         _buildSection(context, 'Contact information', [
+          _buildInfoRow('Contact person', supplier.contactPerson),
           _buildInfoRow('Email', supplier.email),
           _buildInfoRow('Phone', supplier.phone),
         ]),
         const SizedBox(height: 16),
         _buildSection(context, 'Address', [
           _buildInfoRow('Address', supplier.address),
-          _buildInfoRow('City', supplier.city),
-          _buildInfoRow('State', supplier.state),
-          _buildInfoRow('Postal code', supplier.postalCode),
         ]),
       ],
     );
