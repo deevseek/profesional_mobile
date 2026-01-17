@@ -9,8 +9,12 @@ class SupplierRepositoryImpl implements SupplierRepository {
   final SupplierRemoteDataSource _remoteDataSource;
 
   @override
-  Future<SupplierPage> getSuppliers({String? search, int page = 1}) {
-    return _remoteDataSource.fetchSuppliers(search: search, page: page);
+  Future<SupplierPage> getSuppliers({
+    String? search,
+    int page = 1,
+    int? perPage,
+  }) {
+    return _remoteDataSource.fetchSuppliers(search: search, page: page, perPage: perPage);
   }
 
   @override

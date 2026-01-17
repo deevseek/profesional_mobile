@@ -17,36 +17,30 @@ class _SupplierFormPageState extends State<SupplierFormPage> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
+  late final TextEditingController _contactPersonController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
-  late final TextEditingController _cityController;
-  late final TextEditingController _stateController;
-  late final TextEditingController _postalController;
 
   @override
   void initState() {
     super.initState();
     final supplier = widget.supplier;
     _nameController = TextEditingController(text: supplier?.name ?? '');
+    _contactPersonController = TextEditingController(text: supplier?.contactPerson ?? '');
     _emailController = TextEditingController(text: supplier?.email ?? '');
     _phoneController = TextEditingController(text: supplier?.phone ?? '');
     _addressController = TextEditingController(text: supplier?.address ?? '');
-    _cityController = TextEditingController(text: supplier?.city ?? '');
-    _stateController = TextEditingController(text: supplier?.state ?? '');
-    _postalController = TextEditingController(text: supplier?.postalCode ?? '');
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _nameController.dispose();
+    _contactPersonController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    _postalController.dispose();
     super.dispose();
   }
 
@@ -90,6 +84,16 @@ class _SupplierFormPageState extends State<SupplierFormPage> {
                   _buildFieldError('name'),
                   const SizedBox(height: 16),
                   TextFormField(
+                    controller: _contactPersonController,
+                    decoration: const InputDecoration(
+                      labelText: 'Contact person',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                    ),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  _buildFieldError('contact_person'),
+                  const SizedBox(height: 16),
+                  TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
                       labelText: 'Email',
@@ -121,35 +125,6 @@ class _SupplierFormPageState extends State<SupplierFormPage> {
                   ),
                   _buildFieldError('address'),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _cityController,
-                    decoration: const InputDecoration(
-                      labelText: 'City',
-                      prefixIcon: Icon(Icons.location_city_outlined),
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
-                  _buildFieldError('city'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _stateController,
-                    decoration: const InputDecoration(
-                      labelText: 'State',
-                      prefixIcon: Icon(Icons.map_outlined),
-                    ),
-                    textInputAction: TextInputAction.next,
-                  ),
-                  _buildFieldError('state'),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _postalController,
-                    decoration: const InputDecoration(
-                      labelText: 'Postal code',
-                      prefixIcon: Icon(Icons.local_post_office_outlined),
-                    ),
-                    textInputAction: TextInputAction.done,
-                  ),
-                  _buildFieldError('postal_code'),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     icon: _controller.isSubmitting
@@ -230,12 +205,12 @@ class _SupplierFormPageState extends State<SupplierFormPage> {
     final supplier = Supplier(
       id: widget.supplier?.id ?? '',
       name: _nameController.text.trim(),
+      contactPerson: _contactPersonController.text.trim().isEmpty
+          ? null
+          : _contactPersonController.text.trim(),
       email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
       phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
       address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-      city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
-      state: _stateController.text.trim().isEmpty ? null : _stateController.text.trim(),
-      postalCode: _postalController.text.trim().isEmpty ? null : _postalController.text.trim(),
     );
 
     final isEditing = widget.supplier != null;

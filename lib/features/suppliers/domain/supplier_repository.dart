@@ -4,6 +4,7 @@ abstract class SupplierRepository {
   Future<SupplierPage> getSuppliers({
     String? search,
     int page = 1,
+    int? perPage,
   });
 
   Future<Supplier> getSupplier(String id);
