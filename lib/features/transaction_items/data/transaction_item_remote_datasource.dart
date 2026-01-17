@@ -15,7 +15,7 @@ class TransactionItemRemoteDataSource {
     int page = 1,
   }) async {
     final response = await _client.get<Map<String, dynamic>>(
-      '/transaction-items',
+      'transaction-items',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         if (transactionId != null && transactionId.trim().isNotEmpty)
@@ -30,7 +30,7 @@ class TransactionItemRemoteDataSource {
   }
 
   Future<TransactionItem> fetchTransactionItem(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('/transaction-items/$id');
+    final response = await _client.get<Map<String, dynamic>>('transaction-items/$id');
     final payload = _ensureMap(response.data, message: 'Invalid transaction item response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {
@@ -42,7 +42,7 @@ class TransactionItemRemoteDataSource {
 
   Future<TransactionItem> createTransactionItem(TransactionItem transactionItem) async {
     final response = await _client.post<Map<String, dynamic>>(
-      '/transaction-items',
+      'transaction-items',
       data: transactionItem.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid transaction item response');
@@ -56,7 +56,7 @@ class TransactionItemRemoteDataSource {
 
   Future<TransactionItem> updateTransactionItem(String id, TransactionItem transactionItem) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      '/transaction-items/$id',
+      'transaction-items/$id',
       data: transactionItem.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid transaction item response');
@@ -69,7 +69,7 @@ class TransactionItemRemoteDataSource {
   }
 
   Future<void> deleteTransactionItem(String id) async {
-    await _client.delete<void>('/transaction-items/$id');
+    await _client.delete<void>('transaction-items/$id');
   }
 
   Map<String, dynamic> _ensureMap(

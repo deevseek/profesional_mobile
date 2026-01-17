@@ -11,7 +11,7 @@ class SupplierRemoteDataSource {
 
   Future<SupplierPage> fetchSuppliers({String? search, int page = 1}) async {
     final response = await _client.get<Map<String, dynamic>>(
-      '/suppliers',
+      'suppliers',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         'page': page,
@@ -22,7 +22,7 @@ class SupplierRemoteDataSource {
   }
 
   Future<Supplier> fetchSupplier(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('/suppliers/$id');
+    final response = await _client.get<Map<String, dynamic>>('suppliers/$id');
     final payload = _ensureMap(response.data, message: 'Invalid supplier response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {
@@ -34,7 +34,7 @@ class SupplierRemoteDataSource {
 
   Future<Supplier> createSupplier(Supplier supplier) async {
     final response = await _client.post<Map<String, dynamic>>(
-      '/suppliers',
+      'suppliers',
       data: supplier.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid supplier response');
@@ -48,7 +48,7 @@ class SupplierRemoteDataSource {
 
   Future<Supplier> updateSupplier(String id, Supplier supplier) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      '/suppliers/$id',
+      'suppliers/$id',
       data: supplier.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid supplier response');
@@ -61,7 +61,7 @@ class SupplierRemoteDataSource {
   }
 
   Future<void> deleteSupplier(String id) async {
-    await _client.delete<void>('/suppliers/$id');
+    await _client.delete<void>('suppliers/$id');
   }
 
   Map<String, dynamic> _ensureMap(

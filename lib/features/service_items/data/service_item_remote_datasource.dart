@@ -15,7 +15,7 @@ class ServiceItemRemoteDataSource {
     int page = 1,
   }) async {
     final response = await _client.get<Map<String, dynamic>>(
-      '/service-items',
+      'service-items',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         if (serviceId != null && serviceId.trim().isNotEmpty) 'service_id': serviceId.trim(),
@@ -29,7 +29,7 @@ class ServiceItemRemoteDataSource {
   }
 
   Future<ServiceItem> fetchServiceItem(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('/service-items/$id');
+    final response = await _client.get<Map<String, dynamic>>('service-items/$id');
     final payload = _ensureMap(response.data, message: 'Invalid service item response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {
@@ -41,7 +41,7 @@ class ServiceItemRemoteDataSource {
 
   Future<ServiceItem> createServiceItem(ServiceItem serviceItem) async {
     final response = await _client.post<Map<String, dynamic>>(
-      '/service-items',
+      'service-items',
       data: serviceItem.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid service item response');
@@ -55,7 +55,7 @@ class ServiceItemRemoteDataSource {
 
   Future<ServiceItem> updateServiceItem(String id, ServiceItem serviceItem) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      '/service-items/$id',
+      'service-items/$id',
       data: serviceItem.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid service item response');
@@ -68,7 +68,7 @@ class ServiceItemRemoteDataSource {
   }
 
   Future<void> deleteServiceItem(String id) async {
-    await _client.delete<void>('/service-items/$id');
+    await _client.delete<void>('service-items/$id');
   }
 
   Map<String, dynamic> _ensureMap(

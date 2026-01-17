@@ -163,6 +163,17 @@ class CustomerController extends ChangeNotifier {
 
   void _handleError(Object error, {required String fallbackMessage}) {
     if (error is DioException) {
+      final statusCode = error.response?.statusCode;
+      
+      // Handle 401 Unauthorized specifically
+      if (statusCode == 401 || error.error is UnauthorizedException) {
+        _errorMessage = 'Authentication required. Please login first.';
+        if (kDebugMode) {
+          print('❌ [CUSTOMER] 401 Unauthorized - user needs to login');
+        }
+        return;
+      }
+
       final message = _extractMessage(error) ?? fallbackMessage;
       _errorMessage = message;
       if (_isValidationError(error)) {

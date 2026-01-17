@@ -36,15 +36,32 @@ class AuthController extends ChangeNotifier {
     _errorMessage = null;
     try {
       final user = await _authRepository.getCurrentUser();
-      _user = user;
-      _status = user == null ? AuthStatus.unauthenticated : AuthStatus.authenticated;
+      
+      if (user == null) {
+        if (kDebugMode) {
+          print('❌ [INIT] No user found - no token or invalid token');
+        }
+        _status = AuthStatus.unauthenticated;
+      } else {
+        if (kDebugMode) {
+          print('✅ [INIT] User authenticated: ${user.name}');
+        }
+        _user = user;
+        _status = AuthStatus.authenticated;
+      }
     } catch (error) {
+      if (kDebugMode) {
+        print('❌ [INIT ERROR] $error');
+      }
       if (_isUnauthorized(error)) {
         await logout();
         return;
       }
+      // On any other error, show login page
       _status = AuthStatus.unauthenticated;
-      _errorMessage = 'Unable to load profile. Please sign in.';
+      if (kDebugMode) {
+        _errorMessage = 'Unable to load profile: $error';
+      }
     } finally {
       _setBusy(false);
     }
@@ -58,12 +75,24 @@ class AuthController extends ChangeNotifier {
       _user = user;
       _status = user == null ? AuthStatus.unauthenticated : AuthStatus.authenticated;
     } catch (error) {
+      if (kDebugMode) {
+        print('❌ [LOGIN ERROR] $error');
+      }
       if (_isUnauthorized(error)) {
         await logout();
+        _errorMessage = 'Invalid email or password.';
         return;
       }
       _status = AuthStatus.unauthenticated;
-      _errorMessage = 'Login failed. Please check your credentials.';
+      
+      // Extract detailed error message
+      if (error is ApiException) {
+        _errorMessage = error.message;
+      } else if (error is DioException) {
+        _errorMessage = error.message ?? 'Connection error. Please try again.';
+      } else {
+        _errorMessage = error.toString();
+      }
     } finally {
       _setBusy(false);
     }

@@ -15,7 +15,7 @@ class TransactionRemoteDataSource {
     int page = 1,
   }) async {
     final response = await _client.get<Map<String, dynamic>>(
-      '/transactions',
+      'transactions',
       queryParameters: {
         if (invoiceNumber != null && invoiceNumber.trim().isNotEmpty)
           'invoice_number': invoiceNumber.trim(),
@@ -30,7 +30,7 @@ class TransactionRemoteDataSource {
   }
 
   Future<Transaction> fetchTransaction(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('/transactions/$id');
+    final response = await _client.get<Map<String, dynamic>>('transactions/$id');
     final payload = _ensureMap(response.data, message: 'Invalid transaction response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {

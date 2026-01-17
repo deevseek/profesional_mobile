@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/errors/api_exception.dart';
@@ -22,6 +23,10 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
+    if (kDebugMode) {
+      print('🔵 [AUTH REPO] login() called');
+    }
+    
     final response = await _remoteDataSource.login(
       email: email,
       password: password,
@@ -31,8 +36,18 @@ class AuthRepositoryImpl implements AuthRepository {
       throw ApiException('Authentication token missing');
     }
 
+    if (kDebugMode) {
+      print('🟢 [AUTH REPO] Token extracted: ${token.substring(0, 20)}... (${token.length} chars)');
+    }
+
     final prefs = await _prefs();
     await prefs.setString(_tokenKey, token);
+
+    if (kDebugMode) {
+      final saved = prefs.getString(_tokenKey);
+      print('💾 [AUTH REPO] Token saved to SharedPreferences: ${saved != null ? 'SUCCESS' : 'FAILED'}');
+      print('💾 [AUTH REPO] Verify read: ${saved?.substring(0, 20) ?? 'NONE'}...');
+    }
 
     final userJson = _extractUserMap(response);
     if (userJson != null) {

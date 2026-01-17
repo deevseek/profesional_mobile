@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
@@ -19,14 +20,42 @@ class DioClient {
     );
 
     _dio.interceptors.add(_authInterceptor);
-    _dio.interceptors.add(InterceptorsWrapper(
-      onError: (DioException error, handler) async {
-        if (error.response?.statusCode == 401) {
-          await _clearAuthToken();
-        }
-        handler.reject(_mapDioError(error));
-      },
-    ));
+    
+    // Add logging interceptor for debugging
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (kDebugMode) {
+            print('🔵 [API REQUEST] ${options.method} ${options.path}');
+            if (options.queryParameters.isNotEmpty) {
+              print('   Query Params: ${options.queryParameters}');
+            }
+            if (options.data != null) {
+              print('   Body: ${options.data}');
+            }
+          }
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            print('🟢 [API RESPONSE] ${response.statusCode} ${response.requestOptions.path}');
+            print('   Data: ${response.data}');
+          }
+          handler.next(response);
+        },
+        onError: (DioException error, handler) async {
+          if (kDebugMode) {
+            print('🔴 [API ERROR] ${error.response?.statusCode} ${error.requestOptions.path}');
+            print('   Error: ${error.message}');
+            print('   Data: ${error.response?.data}');
+          }
+          if (error.response?.statusCode == 401) {
+            await _clearAuthToken();
+          }
+          handler.reject(_mapDioError(error));
+        },
+      ),
+    );
   }
 
   static const _tokenKey = 'auth_token';
@@ -128,32 +157,66 @@ class DioClient {
 
   DioException _mapDioError(DioException error) {
     final statusCode = error.response?.statusCode;
+    final responseData = error.response?.data;
+    String? serverMessage;
+
+    // Extract error message from server response
+    if (responseData is Map<String, dynamic>) {
+      serverMessage = responseData['message']?.toString() ??
+          responseData['error']?.toString();
+    }
+
     if (statusCode == null) {
       return error.copyWith(
-        error: ApiException('Network error', statusCode: statusCode),
+        error: ApiException(
+          serverMessage ?? 'Network error',
+          statusCode: statusCode,
+        ),
       );
     }
 
     switch (statusCode) {
       case 401:
+        final message = serverMessage ?? 
+            'Unauthorized - Please login again. Token may be expired.';
+        if (kDebugMode) {
+          print('🔴 [401 AUTH ERROR] $message');
+        }
         return error.copyWith(
-          error: UnauthorizedException(statusCode: statusCode),
-        );
-      case 422:
-        return error.copyWith(
-          error: ValidationException(statusCode: statusCode),
+          error: UnauthorizedException(
+            message: message,
+            statusCode: statusCode,
+          ),
         );
       case 404:
         return error.copyWith(
-          error: NotFoundException(statusCode: statusCode),
+          error: NotFoundException(
+            message: serverMessage ?? 'Resource not found',
+            statusCode: statusCode,
+          ),
         );
-      case 502:
+      case 422:
         return error.copyWith(
-          error: ServiceUnavailableException(statusCode: statusCode),
+          error: ValidationException(
+            message: serverMessage ?? 'Validation error',
+            statusCode: statusCode,
+          ),
+        );
+      case 500:
+      case 502:
+      case 503:
+        return error.copyWith(
+          error: ServiceUnavailableException(
+            message: serverMessage ?? 'Service unavailable',
+            statusCode: statusCode,
+          ),
         );
       default:
         return error.copyWith(
-          error: ApiException('Request failed', statusCode: statusCode),
+          error: ApiException(
+            serverMessage ?? 'Request failed',
+            statusCode: statusCode,
+          ),
         );
     }
   }
