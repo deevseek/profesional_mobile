@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/purchase_item_model.dart';
 import 'purchase_item_controller.dart';
 
 class PurchaseItemListPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
   final PurchaseItemController _controller = PurchaseItemController();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _purchaseIdController = TextEditingController();
+  final TextEditingController _productIdController = TextEditingController();
 
   @override
   void initState() {
@@ -23,6 +25,9 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
     _purchaseIdController.addListener(() {
       setState(() {});
     });
+    _productIdController.addListener(() {
+      setState(() {});
+    });
     _controller.loadPurchaseItems();
   }
 
@@ -31,6 +36,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
     _controller.dispose();
     _searchController.dispose();
     _purchaseIdController.dispose();
+    _productIdController.dispose();
     super.dispose();
   }
 
@@ -49,6 +55,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                     : () => _controller.loadPurchaseItems(
                           search: _searchController.text,
                           purchaseId: _purchaseIdController.text,
+                          productId: _productIdController.text,
                           page: 1,
                         ),
                 icon: const Icon(Icons.refresh),
@@ -59,6 +66,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
             children: [
               _buildSearchBar(context),
               _buildPurchaseFilter(context),
+              _buildProductFilter(context),
               if (_controller.errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -70,6 +78,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                     await _controller.loadPurchaseItems(
                       search: _searchController.text,
                       purchaseId: _purchaseIdController.text,
+                      productId: _productIdController.text,
                       page: _controller.page,
                     );
                   },
@@ -100,6 +109,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                 _controller.loadPurchaseItems(
                   search: '',
                   purchaseId: _purchaseIdController.text,
+                  productId: _productIdController.text,
                   page: 1,
                 );
               },
@@ -111,6 +121,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                 : () => _controller.loadPurchaseItems(
                       search: _searchController.text,
                       purchaseId: _purchaseIdController.text,
+                      productId: _productIdController.text,
                       page: 1,
                     ),
           ),
@@ -119,6 +130,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
           _controller.loadPurchaseItems(
             search: value,
             purchaseId: _purchaseIdController.text,
+            productId: _productIdController.text,
             page: 1,
           );
         },
@@ -132,7 +144,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
       child: TextField(
         controller: _purchaseIdController,
         decoration: InputDecoration(
-          labelText: 'Purchase or Product ID',
+          labelText: 'Purchase ID',
           prefixIcon: const Icon(Icons.receipt_long_outlined),
           suffixIcon: _purchaseIdController.text.isNotEmpty
               ? IconButton(
@@ -142,6 +154,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                     _controller.loadPurchaseItems(
                       search: _searchController.text,
                       purchaseId: '',
+                      productId: _productIdController.text,
                       page: 1,
                     );
                   },
@@ -153,6 +166,43 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
           _controller.loadPurchaseItems(
             search: _searchController.text,
             purchaseId: value,
+            productId: _productIdController.text,
+            page: 1,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductFilter(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: TextField(
+        controller: _productIdController,
+        decoration: InputDecoration(
+          labelText: 'Product ID',
+          prefixIcon: const Icon(Icons.inventory_2_outlined),
+          suffixIcon: _productIdController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _productIdController.clear();
+                    _controller.loadPurchaseItems(
+                      search: _searchController.text,
+                      purchaseId: _purchaseIdController.text,
+                      productId: '',
+                      page: 1,
+                    );
+                  },
+                )
+              : null,
+        ),
+        textInputAction: TextInputAction.search,
+        onSubmitted: (value) {
+          _controller.loadPurchaseItems(
+            search: _searchController.text,
+            purchaseId: _purchaseIdController.text,
+            productId: value,
             page: 1,
           );
         },
@@ -194,29 +244,32 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final purchaseItem = _controller.purchaseItems[index];
+        final displayName = _resolveDisplayName(purchaseItem);
         return Card(
           elevation: 1,
           child: ListTile(
             leading: CircleAvatar(
               child: Text(
-                purchaseItem.name.isNotEmpty ? purchaseItem.name[0].toUpperCase() : '?',
+                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
               ),
             ),
-            title: Text(purchaseItem.name.isNotEmpty ? purchaseItem.name : 'Purchase Item'),
+            title: Text(displayName.isNotEmpty ? displayName : 'Purchase Item'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_hasValue(purchaseItem.purchaseNumber))
-                  Text('Purchase: ${purchaseItem.purchaseNumber}'),
-                if (_hasValue(purchaseItem.supplierName))
-                  Text('Supplier: ${purchaseItem.supplierName}'),
-                if (_hasValue(purchaseItem.productName))
-                  Text('Product: ${purchaseItem.productName}'),
+                if (_hasValue(purchaseItem.purchaseInvoiceNumber))
+                  Text('Invoice: ${purchaseItem.purchaseInvoiceNumber}'),
+                if (_hasValue(purchaseItem.productName) || _hasValue(purchaseItem.productSku))
+                  Text(
+                    'Product: ${_formatProductLabel(purchaseItem.productName, purchaseItem.productSku)}',
+                  ),
+                if (_hasValue(purchaseItem.paymentStatus))
+                  Text('Status: ${purchaseItem.paymentStatus}'),
                 if (purchaseItem.quantity != null) Text('Qty: ${purchaseItem.quantity}'),
-                if (purchaseItem.unitPrice != null)
-                  Text('Unit price: ${_formatPrice(purchaseItem.unitPrice)}'),
-                if (purchaseItem.total != null)
-                  Text('Total: ${_formatPrice(purchaseItem.total)}'),
+                if (purchaseItem.price != null)
+                  Text('Price: ${_formatPrice(purchaseItem.price)}'),
+                if (purchaseItem.subtotal != null)
+                  Text('Subtotal: ${_formatPrice(purchaseItem.subtotal)}'),
               ],
             ),
           ),
@@ -249,6 +302,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                 ? () => _controller.loadPurchaseItems(
                       search: _searchController.text,
                       purchaseId: _purchaseIdController.text,
+                      productId: _productIdController.text,
                       page: meta.currentPage - 1,
                     )
                 : null,
@@ -259,6 +313,7 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
                 ? () => _controller.loadPurchaseItems(
                       search: _searchController.text,
                       purchaseId: _purchaseIdController.text,
+                      productId: _productIdController.text,
                       page: meta.currentPage + 1,
                     )
                 : null,
@@ -284,6 +339,20 @@ class _PurchaseItemListPageState extends State<PurchaseItemListPage> {
 
   bool _hasValue(String? value) {
     return value != null && value.trim().isNotEmpty;
+  }
+
+  String _resolveDisplayName(PurchaseItem purchaseItem) {
+    final candidate = purchaseItem.productName ?? purchaseItem.productSku ?? '';
+    return candidate.trim();
+  }
+
+  String _formatProductLabel(String? name, String? sku) {
+    final resolvedName = name?.trim() ?? '';
+    final resolvedSku = sku?.trim() ?? '';
+    if (resolvedName.isNotEmpty && resolvedSku.isNotEmpty) {
+      return '$resolvedName ($resolvedSku)';
+    }
+    return resolvedName.isNotEmpty ? resolvedName : resolvedSku;
   }
 
   String _formatPrice(double? value) {
