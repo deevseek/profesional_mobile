@@ -24,6 +24,9 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
   late final TextEditingController _supplierIdController;
   late final TextEditingController _purchaseDateController;
   late final TextEditingController _notesController;
+  late final TextEditingController _productIdController;
+  late final TextEditingController _quantityController;
+  late final TextEditingController _priceController;
   String _statusValue = '';
 
   @override
@@ -32,6 +35,9 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
     _supplierIdController = TextEditingController();
     _purchaseDateController = TextEditingController(text: _formatDate(DateTime.now()));
     _notesController = TextEditingController();
+    _productIdController = TextEditingController();
+    _quantityController = TextEditingController();
+    _priceController = TextEditingController();
   }
 
   @override
@@ -40,6 +46,9 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
     _supplierIdController.dispose();
     _purchaseDateController.dispose();
     _notesController.dispose();
+    _productIdController.dispose();
+    _quantityController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
@@ -134,6 +143,72 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
                     textInputAction: TextInputAction.newline,
                   ),
                   _buildFieldError('notes'),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Items',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _productIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product ID *',
+                      prefixIcon: Icon(Icons.inventory_2_outlined),
+                    ),
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Product ID is required.';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  ),
+                  _buildFieldError('items.0.product_id'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _quantityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Quantity *',
+                      prefixIcon: Icon(Icons.numbers_outlined),
+                    ),
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Quantity is required.';
+                      }
+                      final parsed = int.tryParse(value.trim());
+                      if (parsed == null || parsed <= 0) {
+                        return 'Enter a valid quantity.';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  ),
+                  _buildFieldError('items.0.quantity'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Price *',
+                      prefixIcon: Icon(Icons.attach_money_outlined),
+                    ),
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Price is required.';
+                      }
+                      final parsed = double.tryParse(value.trim());
+                      if (parsed == null || parsed <= 0) {
+                        return 'Enter a valid price.';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  ),
+                  _buildFieldError('items.0.price'),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     icon: _controller.isSubmitting
@@ -244,6 +319,14 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
       purchaseDate: _parseDate(_purchaseDateController.text),
       paymentStatus: _statusValue.isEmpty ? null : _statusValue,
       notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      items: [
+        PurchaseLineItem(
+          id: '',
+          productId: _productIdController.text.trim(),
+          quantity: int.tryParse(_quantityController.text.trim()),
+          price: double.tryParse(_priceController.text.trim()),
+        ),
+      ],
     );
 
     final success = await _controller.createPurchase(purchase);
