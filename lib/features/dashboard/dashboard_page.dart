@@ -6,6 +6,7 @@ import '../categories/presentation/category_list_page.dart';
 import '../customers/presentation/customer_list_page.dart';
 import '../employees/presentation/employee_list_page.dart';
 import '../products/presentation/product_list_page.dart';
+import '../purchase_items/presentation/purchase_item_list_page.dart';
 import '../service_logs/presentation/service_log_list_page.dart';
 import '../services/presentation/service_list_page.dart';
 import '../suppliers/presentation/supplier_list_page.dart';
@@ -185,10 +186,7 @@ class DashboardPage extends ConsumerWidget {
           DashboardMenuItem(
             label: 'Purchases',
             icon: Icons.shopping_cart_outlined,
-            onTap: () => _openPage(
-              context,
-              const ModulePlaceholderPage(title: 'Purchases'),
-            ),
+            onTap: () => _openPage(context, const PurchaseItemListPage()),
           ),
           DashboardMenuItem(
             label: 'Transactions',
