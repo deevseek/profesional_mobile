@@ -39,13 +39,15 @@ class PurchaseItem {
 
     return PurchaseItem(
       id: '${json['id'] ?? json['purchase_item_id'] ?? ''}',
-      name: '${json['name'] ?? json['item_name'] ?? json['title'] ?? resolvedProductName ?? ''}',
+      name:
+          '${json['name'] ?? json['item_name'] ?? json['title'] ?? resolvedProductName ?? json['product_id'] ?? ''}',
       purchaseId: _stringValue(json['purchase_id'] ?? json['purchaseId']),
       productId: _stringValue(json['product_id'] ?? json['productId']),
       description: json['description']?.toString() ?? json['notes']?.toString(),
       quantity: _asInt(json['quantity'] ?? json['qty']),
       unitPrice: _asDouble(json['unit_price'] ?? json['unitPrice'] ?? json['price']),
-      total: _asDouble(json['total'] ?? json['total_price'] ?? json['totalPrice']),
+      total:
+          _asDouble(json['total'] ?? json['total_price'] ?? json['totalPrice'] ?? json['subtotal']),
       purchaseNumber: _extractName(purchaseValue) ??
           _stringValue(json['purchase_number'] ?? json['reference_number']),
       supplierName: _extractName(supplierValue) ??
@@ -60,11 +62,10 @@ class PurchaseItem {
     return {
       if (purchaseId != null) 'purchase_id': purchaseId,
       if (productId != null) 'product_id': productId,
-      'name': name,
       if (description != null) 'description': description,
       if (quantity != null) 'quantity': quantity,
-      if (unitPrice != null) 'unit_price': unitPrice,
-      if (total != null) 'total': total,
+      if (unitPrice != null) 'price': unitPrice,
+      if (total != null) 'subtotal': total,
     };
   }
 
@@ -214,10 +215,10 @@ class PurchaseItemPaginationLinks {
 
   factory PurchaseItemPaginationLinks.fromJson(Map<String, dynamic> json) {
     return PurchaseItemPaginationLinks(
-      first: json['first']?.toString(),
-      last: json['last']?.toString(),
-      prev: json['prev']?.toString(),
-      next: json['next']?.toString(),
+      first: json['first']?.toString() ?? json['first_page_url']?.toString(),
+      last: json['last']?.toString() ?? json['last_page_url']?.toString(),
+      prev: json['prev']?.toString() ?? json['prev_page_url']?.toString(),
+      next: json['next']?.toString() ?? json['next_page_url']?.toString(),
     );
   }
 }
@@ -244,15 +245,10 @@ class PurchaseItemPage {
           : const [],
       meta: metaJson is Map<String, dynamic>
           ? PurchaseItemPaginationMeta.fromJson(metaJson)
-          : const PurchaseItemPaginationMeta(
-              currentPage: 1,
-              lastPage: 1,
-              perPage: 0,
-              total: 0,
-            ),
+          : PurchaseItemPaginationMeta.fromJson(json),
       links: linksJson is Map<String, dynamic>
           ? PurchaseItemPaginationLinks.fromJson(linksJson)
-          : const PurchaseItemPaginationLinks(),
+          : PurchaseItemPaginationLinks.fromJson(json),
     );
   }
 }
