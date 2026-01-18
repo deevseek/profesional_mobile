@@ -9,12 +9,19 @@ class ProductRemoteDataSource {
 
   final DioClient _client;
 
-  Future<ProductPage> fetchProducts({String? search, int page = 1}) async {
+  Future<ProductPage> fetchProducts({
+    String? search,
+    String? categoryId,
+    int page = 1,
+    int perPage = 15,
+  }) async {
     final response = await _client.get<Map<String, dynamic>>(
       '/products',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (categoryId != null && categoryId.trim().isNotEmpty) 'category_id': categoryId.trim(),
         'page': page,
+        'per_page': perPage,
       },
     );
 

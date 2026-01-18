@@ -9,8 +9,18 @@ class ProductRepositoryImpl implements ProductRepository {
   final ProductRemoteDataSource _remoteDataSource;
 
   @override
-  Future<ProductPage> getProducts({String? search, int page = 1}) {
-    return _remoteDataSource.fetchProducts(search: search, page: page);
+  Future<ProductPage> getProducts({
+    String? search,
+    String? categoryId,
+    int page = 1,
+    int perPage = 15,
+  }) {
+    return _remoteDataSource.fetchProducts(
+      search: search,
+      categoryId: categoryId,
+      page: page,
+      perPage: perPage,
+    );
   }
 
   @override

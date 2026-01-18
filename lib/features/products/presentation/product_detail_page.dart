@@ -108,15 +108,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         _buildSection(context, 'Pricing', [
           _buildInfoRow('Pricing mode', _formatPricingMode(product.pricingMode)),
           _buildInfoRow('Price', _formatPrice(product.price)),
-          _buildInfoRow('Cost', _formatPrice(product.cost)),
+          _buildInfoRow('Cost price', _formatPrice(product.costPrice)),
+          _buildInfoRow('Avg cost', _formatPrice(product.avgCost)),
+          _buildInfoRow('Margin', _formatPercentage(product.marginPercentage)),
         ]),
         const SizedBox(height: 16),
         _buildSection(context, 'Inventory', [
           _buildInfoRow('Stock', product.stock?.toString()),
+          _buildInfoRow('Warranty days', product.warrantyDays?.toString()),
         ]),
         const SizedBox(height: 16),
         _buildSection(context, 'Details', [
           _buildInfoRow('SKU', product.sku),
+          _buildInfoRow('Category', product.category?.name),
           _buildInfoRow('Description', product.description),
         ]),
       ],
@@ -146,7 +150,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     product.name,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  if (product.sku.isNotEmpty)
+                  if (_hasValue(product.sku))
                     Text(
                       'SKU: ${product.sku}',
                       style: Theme.of(context).textTheme.bodyMedium,
@@ -258,5 +262,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       }
       return part[0].toUpperCase() + part.substring(1).toLowerCase();
     }).join(' ');
+  }
+
+  String? _formatPercentage(double? value) {
+    if (value == null) {
+      return null;
+    }
+    return '${value.toStringAsFixed(2)}%';
+  }
+
+  bool _hasValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../categories/presentation/category_controller.dart';
 import '../domain/product_model.dart';
 import 'product_controller.dart';
 
@@ -14,12 +15,12 @@ class ProductFormPage extends StatefulWidget {
 
 class _ProductFormPageState extends State<ProductFormPage> {
   static const List<String> _pricingModes = [
-    'fixed',
-    'variable',
-    'tiered',
+    'manual',
+    'percentage',
   ];
 
   final ProductController _controller = ProductController();
+  final CategoryController _categoryController = CategoryController();
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameController;
@@ -27,8 +28,11 @@ class _ProductFormPageState extends State<ProductFormPage> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _priceController;
   late final TextEditingController _costController;
+  late final TextEditingController _marginController;
   late final TextEditingController _stockController;
+  late final TextEditingController _warrantyController;
   late String _pricingMode;
+  String? _selectedCategoryId;
 
   @override
   void initState() {
@@ -38,22 +42,29 @@ class _ProductFormPageState extends State<ProductFormPage> {
     _skuController = TextEditingController(text: product?.sku ?? '');
     _descriptionController = TextEditingController(text: product?.description ?? '');
     _priceController = TextEditingController(text: product?.price?.toString() ?? '');
-    _costController = TextEditingController(text: product?.cost?.toString() ?? '');
+    _costController = TextEditingController(text: product?.costPrice?.toString() ?? '');
+    _marginController = TextEditingController(text: product?.marginPercentage?.toString() ?? '');
     _stockController = TextEditingController(text: product?.stock?.toString() ?? '');
+    _warrantyController = TextEditingController(text: product?.warrantyDays?.toString() ?? '');
     _pricingMode = product?.pricingMode?.toString().isNotEmpty == true
         ? product!.pricingMode!
         : _pricingModes.first;
+    _selectedCategoryId = product?.categoryId ?? product?.category?.id;
+    _categoryController.loadCategories(perPage: 100);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _categoryController.dispose();
     _nameController.dispose();
     _skuController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
     _costController.dispose();
+    _marginController.dispose();
     _stockController.dispose();
+    _warrantyController.dispose();
     super.dispose();
   }
 
@@ -61,7 +72,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
   Widget build(BuildContext context) {
     final isEditing = widget.product != null;
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_controller, _categoryController]),
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
@@ -79,6 +90,9 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: _buildErrorBanner(context, _controller.errorMessage!),
                     ),
+                  _buildCategoryField(),
+                  _buildFieldError('category_id'),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -103,12 +117,6 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       prefixIcon: Icon(Icons.confirmation_number_outlined),
                     ),
                     textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'SKU is required.';
-                      }
-                      return null;
-                    },
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                   ),
                   _buildFieldError('sku'),
@@ -156,9 +164,13 @@ class _ProductFormPageState extends State<ProductFormPage> {
                       prefixIcon: Icon(Icons.attach_money_outlined),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    enabled: _pricingMode == 'manual',
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      if (_pricingMode != 'manual') {
                         return null;
+                      }
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Price is required for manual pricing.';
                       }
                       if (_parseDouble(value) == null) {
                         return 'Enter a valid price.';
@@ -171,21 +183,47 @@ class _ProductFormPageState extends State<ProductFormPage> {
                   TextFormField(
                     controller: _costController,
                     decoration: const InputDecoration(
-                      labelText: 'Cost',
+                      labelText: 'Cost price',
                       prefixIcon: Icon(Icons.request_quote_outlined),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
+                      if (_pricingMode != 'percentage') {
                         return null;
                       }
-                      if (_parseDouble(value) == null) {
-                        return 'Enter a valid cost.';
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Cost price is required for percentage pricing.';
+                      }
+                      final parsed = _parseDouble(value);
+                      if (parsed == null || parsed <= 0) {
+                        return 'Enter a valid cost price.';
                       }
                       return null;
                     },
                   ),
-                  _buildFieldError('cost'),
+                  _buildFieldError('cost_price'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _marginController,
+                    decoration: const InputDecoration(
+                      labelText: 'Margin percentage',
+                      prefixIcon: Icon(Icons.percent_outlined),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    validator: (value) {
+                      if (_pricingMode != 'percentage') {
+                        return null;
+                      }
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Margin percentage is required for percentage pricing.';
+                      }
+                      if (_parseDouble(value) == null) {
+                        return 'Enter a valid margin percentage.';
+                      }
+                      return null;
+                    },
+                  ),
+                  _buildFieldError('margin_percentage'),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _stockController,
@@ -196,15 +234,38 @@ class _ProductFormPageState extends State<ProductFormPage> {
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return null;
+                        return 'Stock is required.';
                       }
-                      if (_parseInt(value) == null) {
+                      final parsed = _parseInt(value);
+                      if (parsed == null) {
                         return 'Enter a valid stock quantity.';
+                      }
+                      if (parsed < 0) {
+                        return 'Stock must be at least 0.';
                       }
                       return null;
                     },
                   ),
                   _buildFieldError('stock'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _warrantyController,
+                    decoration: const InputDecoration(
+                      labelText: 'Warranty (days)',
+                      prefixIcon: Icon(Icons.calendar_today_outlined),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return null;
+                      }
+                      if (_parseInt(value) == null) {
+                        return 'Enter a valid warranty duration.';
+                      }
+                      return null;
+                    },
+                  ),
+                  _buildFieldError('warranty_days'),
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     icon: _controller.isSubmitting
@@ -248,6 +309,57 @@ class _ProductFormPageState extends State<ProductFormPage> {
     );
   }
 
+  Widget _buildCategoryField() {
+    final categories = _categoryController.categories;
+    if (categories.isEmpty) {
+      return TextFormField(
+        initialValue: _selectedCategoryId ?? '',
+        decoration: const InputDecoration(
+          labelText: 'Category ID',
+          prefixIcon: Icon(Icons.category_outlined),
+        ),
+        textInputAction: TextInputAction.next,
+        onChanged: (value) {
+          _selectedCategoryId = value.trim().isEmpty ? null : value.trim();
+        },
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Category is required.';
+          }
+          return null;
+        },
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+      );
+    }
+
+    return DropdownButtonFormField<String>(
+      value: _selectedCategoryId,
+      decoration: const InputDecoration(
+        labelText: 'Category',
+        prefixIcon: Icon(Icons.category_outlined),
+      ),
+      items: categories
+          .map(
+            (category) => DropdownMenuItem(
+              value: category.id,
+              child: Text(category.name),
+            ),
+          )
+          .toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedCategoryId = value;
+        });
+      },
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Category is required.';
+        }
+        return null;
+      },
+    );
+  }
+
   Widget _buildErrorBanner(BuildContext context, String message) {
     return Card(
       color: Theme.of(context).colorScheme.errorContainer,
@@ -284,15 +396,18 @@ class _ProductFormPageState extends State<ProductFormPage> {
 
     final product = Product(
       id: widget.product?.id ?? '',
+      categoryId: _selectedCategoryId?.trim().isEmpty == true ? null : _selectedCategoryId,
       name: _nameController.text.trim(),
-      sku: _skuController.text.trim(),
+      sku: _skuController.text.trim().isEmpty ? null : _skuController.text.trim(),
       description: _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim(),
       pricingMode: _pricingMode,
       price: _parseDouble(_priceController.text),
-      cost: _parseDouble(_costController.text),
+      costPrice: _parseDouble(_costController.text),
+      marginPercentage: _parseDouble(_marginController.text),
       stock: _parseInt(_stockController.text),
+      warrantyDays: _parseInt(_warrantyController.text),
     );
 
     final isEditing = widget.product != null;

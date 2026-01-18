@@ -172,9 +172,11 @@ class _ProductListPageState extends State<ProductListPage> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (product.sku.isNotEmpty) Text('SKU: ${product.sku}'),
+                if (_hasValue(product.sku)) Text('SKU: ${product.sku}'),
+                if (product.category?.name != null && product.category!.name.isNotEmpty)
+                  Text('Category: ${product.category!.name}'),
                 if (product.price != null) Text('Price: ${_formatPrice(product.price)}'),
-                if (product.pricingMode != null && product.pricingMode!.isNotEmpty)
+                if (_hasValue(product.pricingMode))
                   Text('Pricing mode: ${_formatPricingMode(product.pricingMode!)}'),
               ],
             ),
@@ -267,5 +269,9 @@ class _ProductListPageState extends State<ProductListPage> {
       }
       return part[0].toUpperCase() + part.substring(1).toLowerCase();
     }).join(' ');
+  }
+
+  bool _hasValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
   }
 }
