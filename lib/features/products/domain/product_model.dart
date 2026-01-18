@@ -1,78 +1,110 @@
+import '../../categories/domain/category_model.dart';
+
 class Product {
   const Product({
     required this.id,
     required this.name,
-    required this.sku,
-    this.description,
-    this.pricingMode,
+    this.categoryId,
+    this.sku,
+    this.costPrice,
+    this.avgCost,
     this.price,
-    this.cost,
+    this.pricingMode,
+    this.marginPercentage,
     this.stock,
+    this.warrantyDays,
+    this.description,
     this.createdAt,
     this.updatedAt,
+    this.category,
   });
 
   final String id;
   final String name;
-  final String sku;
-  final String? description;
-  final String? pricingMode;
+  final String? categoryId;
+  final String? sku;
+  final double? costPrice;
+  final double? avgCost;
   final double? price;
-  final double? cost;
+  final String? pricingMode;
+  final double? marginPercentage;
   final int? stock;
+  final int? warrantyDays;
+  final String? description;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Category? category;
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    final categoryPayload = json['category'];
     return Product(
       id: '${json['id'] ?? json['product_id'] ?? ''}',
+      categoryId: _stringValue(json['category_id'] ?? json['categoryId']),
       name: '${json['name'] ?? ''}',
-      sku: '${json['sku'] ?? json['code'] ?? ''}',
-      description: json['description']?.toString(),
-      pricingMode: json['pricing_mode']?.toString() ?? json['pricingMode']?.toString(),
+      sku: _stringValue(json['sku'] ?? json['code']),
+      costPrice: _asDouble(json['cost_price'] ?? json['costPrice'] ?? json['cost']),
+      avgCost: _asDouble(json['avg_cost'] ?? json['avgCost']),
       price: _asDouble(json['price'] ?? json['unit_price'] ?? json['unitPrice']),
-      cost: _asDouble(json['cost'] ?? json['unit_cost'] ?? json['unitCost']),
+      pricingMode: _stringValue(json['pricing_mode'] ?? json['pricingMode']),
+      marginPercentage: _asDouble(json['margin_percentage'] ?? json['marginPercentage']),
       stock: _asInt(json['stock'] ?? json['quantity']),
+      warrantyDays: _asInt(json['warranty_days'] ?? json['warrantyDays']),
+      description: json['description']?.toString(),
       createdAt: _parseDate(json['created_at'] ?? json['createdAt']),
       updatedAt: _parseDate(json['updated_at'] ?? json['updatedAt']),
+      category: categoryPayload is Map<String, dynamic> ? Category.fromJson(categoryPayload) : null,
     );
   }
 
   Map<String, dynamic> toPayload() {
-    return {
+    final payload = <String, dynamic>{
       'name': name,
-      'sku': sku,
-      if (description != null) 'description': description,
+      if (categoryId != null) 'category_id': categoryId,
+      if (_hasValue(sku)) 'sku': sku,
       if (pricingMode != null) 'pricing_mode': pricingMode,
+      if (costPrice != null) 'cost_price': costPrice,
       if (price != null) 'price': price,
-      if (cost != null) 'cost': cost,
+      if (marginPercentage != null) 'margin_percentage': marginPercentage,
       if (stock != null) 'stock': stock,
+      if (warrantyDays != null) 'warranty_days': warrantyDays,
+      if (description != null) 'description': description,
     };
+    return payload;
   }
 
   Product copyWith({
     String? id,
     String? name,
+    String? categoryId,
     String? sku,
-    String? description,
-    String? pricingMode,
+    double? costPrice,
+    double? avgCost,
     double? price,
-    double? cost,
+    String? pricingMode,
+    double? marginPercentage,
     int? stock,
+    int? warrantyDays,
+    String? description,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Category? category,
   }) {
     return Product(
       id: id ?? this.id,
       name: name ?? this.name,
+      categoryId: categoryId ?? this.categoryId,
       sku: sku ?? this.sku,
-      description: description ?? this.description,
-      pricingMode: pricingMode ?? this.pricingMode,
+      costPrice: costPrice ?? this.costPrice,
+      avgCost: avgCost ?? this.avgCost,
       price: price ?? this.price,
-      cost: cost ?? this.cost,
+      pricingMode: pricingMode ?? this.pricingMode,
+      marginPercentage: marginPercentage ?? this.marginPercentage,
       stock: stock ?? this.stock,
+      warrantyDays: warrantyDays ?? this.warrantyDays,
+      description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      category: category ?? this.category,
     );
   }
 
@@ -114,6 +146,18 @@ class Product {
       return value.toInt();
     }
     return int.tryParse(value.toString().replaceAll(',', ''));
+  }
+
+  static String? _stringValue(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    final trimmed = value.toString().trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  static bool _hasValue(String? value) {
+    return value != null && value.trim().isNotEmpty;
   }
 }
 

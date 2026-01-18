@@ -3,7 +3,9 @@ import 'product_model.dart';
 abstract class ProductRepository {
   Future<ProductPage> getProducts({
     String? search,
+    String? categoryId,
     int page = 1,
+    int perPage = 15,
   });
 
   Future<Product> getProduct(String id);

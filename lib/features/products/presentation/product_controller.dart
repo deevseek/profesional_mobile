@@ -21,6 +21,8 @@ class ProductController extends ChangeNotifier {
   ProductPaginationLinks? _links;
   String _searchQuery = '';
   int _page = 1;
+  int _perPage = 15;
+  String? _categoryId;
   Product? _product;
   Map<String, List<String>> _fieldErrors = const {};
 
@@ -33,20 +35,33 @@ class ProductController extends ChangeNotifier {
   ProductPaginationLinks? get links => _links;
   String get searchQuery => _searchQuery;
   int get page => _page;
+  int get perPage => _perPage;
+  String? get categoryId => _categoryId;
   Product? get product => _product;
   Map<String, List<String>> get fieldErrors => _fieldErrors;
 
-  Future<void> loadProducts({String? search, int page = 1}) async {
+  Future<void> loadProducts({
+    String? search,
+    String? categoryId,
+    int page = 1,
+    int? perPage,
+  }) async {
     _setLoading(true);
     _errorMessage = null;
     _successMessage = null;
     _fieldErrors = const {};
     _searchQuery = search ?? _searchQuery;
+    _categoryId = categoryId ?? _categoryId;
     _page = page;
+    if (perPage != null) {
+      _perPage = perPage;
+    }
     try {
       final result = await _repository.getProducts(
         search: _searchQuery.isEmpty ? null : _searchQuery,
+        categoryId: _categoryId,
         page: _page,
+        perPage: _perPage,
       );
       _products = result.data;
       _meta = result.meta;
