@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../products/domain/product_model.dart';
+import '../../products/presentation/product_controller.dart';
 import '../domain/purchase_model.dart';
 import 'purchase_controller.dart';
 
@@ -19,15 +21,16 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
   ];
 
   final PurchaseController _controller = PurchaseController();
+  final ProductController _productController = ProductController();
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _supplierIdController;
   late final TextEditingController _purchaseDateController;
   late final TextEditingController _notesController;
-  late final TextEditingController _productIdController;
   late final TextEditingController _quantityController;
   late final TextEditingController _priceController;
   String _statusValue = '';
+  String? _selectedProductId;
 
   @override
   void initState() {
@@ -35,18 +38,18 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
     _supplierIdController = TextEditingController();
     _purchaseDateController = TextEditingController(text: _formatDate(DateTime.now()));
     _notesController = TextEditingController();
-    _productIdController = TextEditingController();
     _quantityController = TextEditingController();
     _priceController = TextEditingController();
+    _productController.loadProducts(perPage: 100);
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _productController.dispose();
     _supplierIdController.dispose();
     _purchaseDateController.dispose();
     _notesController.dispose();
-    _productIdController.dispose();
     _quantityController.dispose();
     _priceController.dispose();
     super.dispose();
@@ -55,7 +58,7 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_controller, _productController]),
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
@@ -149,21 +152,7 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _productIdController,
-                    decoration: const InputDecoration(
-                      labelText: 'Product ID *',
-                      prefixIcon: Icon(Icons.inventory_2_outlined),
-                    ),
-                    textInputAction: TextInputAction.next,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Product ID is required.';
-                      }
-                      return null;
-                    },
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                  ),
+                  _buildProductSelector(),
                   _buildFieldError('items.0.product_id'),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -279,6 +268,80 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
     );
   }
 
+  Widget _buildProductSelector() {
+    final products = _productController.products;
+    final isLoading = _productController.isLoading;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          value: _selectedProductId,
+          decoration: InputDecoration(
+            labelText: 'Product *',
+            prefixIcon: const Icon(Icons.inventory_2_outlined),
+            suffixIcon: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : null,
+          ),
+          items: products
+              .map(
+                (product) => DropdownMenuItem<String>(
+                  value: product.id,
+                  child: Text(_formatProductLabel(product)),
+                ),
+              )
+              .toList(),
+          onChanged: isLoading
+              ? null
+              : (value) {
+                  setState(() {
+                    _selectedProductId = value;
+                  });
+                },
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'Product is required.';
+            }
+            return null;
+          },
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+        ),
+        if (!isLoading && products.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'No products found. Please add a product first.',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        if (_productController.errorMessage != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _productController.errorMessage!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _formatProductLabel(Product product) {
+    final sku = product.sku;
+    if (sku != null && sku.trim().isNotEmpty) {
+      return '${product.name} ($sku)';
+    }
+    return product.name;
+  }
+
   String _formatStatusLabel(String status) {
     if (status.trim().isEmpty) {
       return 'Unknown';
@@ -322,7 +385,7 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
       items: [
         PurchaseLineItem(
           id: '',
-          productId: _productIdController.text.trim(),
+          productId: _selectedProductId?.trim(),
           quantity: int.tryParse(_quantityController.text.trim()),
           price: double.tryParse(_priceController.text.trim()),
         ),
