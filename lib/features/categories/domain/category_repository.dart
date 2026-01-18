@@ -4,6 +4,7 @@ abstract class CategoryRepository {
   Future<CategoryPage> getCategories({
     String? search,
     int page = 1,
+    int? perPage,
   });
 
   Future<Category> getCategory(String id);
