@@ -5,6 +5,7 @@ import '../auth/presentation/auth_controller.dart';
 import '../categories/presentation/category_list_page.dart';
 import '../customers/presentation/customer_list_page.dart';
 import '../employees/presentation/employee_list_page.dart';
+import '../finances/presentation/finance_list_page.dart';
 import '../products/presentation/product_list_page.dart';
 import '../purchases/presentation/purchase_list_page.dart';
 import '../purchase_items/presentation/purchase_item_list_page.dart';
@@ -210,10 +211,7 @@ class DashboardPage extends ConsumerWidget {
           DashboardMenuItem(
             label: 'Finances',
             icon: Icons.account_balance_wallet_outlined,
-            onTap: () => _openPage(
-              context,
-              const ModulePlaceholderPage(title: 'Finances'),
-            ),
+            onTap: () => _openPage(context, const FinanceListPage()),
           ),
           DashboardMenuItem(
             label: 'Payrolls',
