@@ -24,7 +24,7 @@ class PurchaseItemRemoteDataSource {
     final resolvedProductId =
         (productId != null && productId.trim().isNotEmpty) ? productId.trim() : null;
     final response = await _client.get<Map<String, dynamic>>(
-      'purchase-items',
+      '/purchase-items',
       queryParameters: {
         if (resolvedSearch != null) 'search': resolvedSearch,
         if (resolvedPurchaseId != null) 'purchase_id': resolvedPurchaseId,
@@ -40,7 +40,7 @@ class PurchaseItemRemoteDataSource {
   }
 
   Future<PurchaseItem> fetchPurchaseItem(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('purchase-items/$id');
+    final response = await _client.get<Map<String, dynamic>>('/purchase-items/$id');
     final payload = _ensureMap(response.data, message: 'Invalid purchase item response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {
@@ -52,7 +52,7 @@ class PurchaseItemRemoteDataSource {
 
   Future<PurchaseItem> createPurchaseItem(PurchaseItem purchaseItem) async {
     final response = await _client.post<Map<String, dynamic>>(
-      'purchase-items',
+      '/purchase-items',
       data: purchaseItem.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid purchase item response');
@@ -66,7 +66,7 @@ class PurchaseItemRemoteDataSource {
 
   Future<PurchaseItem> updatePurchaseItem(String id, PurchaseItem purchaseItem) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      'purchase-items/$id',
+      '/purchase-items/$id',
       data: purchaseItem.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid purchase item response');
@@ -79,7 +79,7 @@ class PurchaseItemRemoteDataSource {
   }
 
   Future<void> deletePurchaseItem(String id) async {
-    await _client.delete<void>('purchase-items/$id');
+    await _client.delete<void>('/purchase-items/$id');
   }
 
   Map<String, dynamic> _ensureMap(

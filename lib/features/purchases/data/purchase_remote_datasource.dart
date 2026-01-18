@@ -14,7 +14,7 @@ class PurchaseRemoteDataSource {
     int page = 1,
   }) async {
     final response = await _client.get<Map<String, dynamic>>(
-      'purchases',
+      '/purchases',
       queryParameters: {
         if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         'page': page,
@@ -27,7 +27,7 @@ class PurchaseRemoteDataSource {
   }
 
   Future<Purchase> fetchPurchase(String id) async {
-    final response = await _client.get<Map<String, dynamic>>('purchases/$id');
+    final response = await _client.get<Map<String, dynamic>>('/purchases/$id');
     final payload = _ensureMap(response.data, message: 'Invalid purchase response');
     final data = payload['data'];
     if (data is Map<String, dynamic>) {
@@ -39,7 +39,7 @@ class PurchaseRemoteDataSource {
 
   Future<Purchase> createPurchase(Purchase purchase) async {
     final response = await _client.post<Map<String, dynamic>>(
-      'purchases',
+      '/purchases',
       data: purchase.toPayload(),
     );
     final payload = _ensureMap(response.data, message: 'Invalid purchase response');
@@ -53,7 +53,7 @@ class PurchaseRemoteDataSource {
 
   Future<Purchase> updatePurchase(String id, Map<String, dynamic> payload) async {
     final response = await _client.patch<Map<String, dynamic>>(
-      'purchases/$id',
+      '/purchases/$id',
       data: payload,
     );
     final responsePayload =
