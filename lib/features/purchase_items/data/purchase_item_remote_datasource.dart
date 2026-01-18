@@ -14,11 +14,15 @@ class PurchaseItemRemoteDataSource {
     String? purchaseId,
     int page = 1,
   }) async {
+    final resolvedSearch = (search != null && search.trim().isNotEmpty)
+        ? search.trim()
+        : (purchaseId != null && purchaseId.trim().isNotEmpty)
+            ? purchaseId.trim()
+            : null;
     final response = await _client.get<Map<String, dynamic>>(
       'purchase-items',
       queryParameters: {
-        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
-        if (purchaseId != null && purchaseId.trim().isNotEmpty) 'purchase_id': purchaseId.trim(),
+        if (resolvedSearch != null) 'search': resolvedSearch,
         'page': page,
       },
     );
