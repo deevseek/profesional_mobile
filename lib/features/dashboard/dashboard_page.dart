@@ -9,6 +9,7 @@ import '../finances/presentation/finance_list_page.dart';
 import '../products/presentation/product_list_page.dart';
 import '../purchases/presentation/purchase_list_page.dart';
 import '../purchase_items/presentation/purchase_item_list_page.dart';
+import '../payrolls/presentation/payroll_list_page.dart';
 import '../service_logs/presentation/service_log_list_page.dart';
 import '../services/presentation/service_list_page.dart';
 import '../suppliers/presentation/supplier_list_page.dart';
@@ -216,10 +217,7 @@ class DashboardPage extends ConsumerWidget {
           DashboardMenuItem(
             label: 'Payrolls',
             icon: Icons.payments_outlined,
-            onTap: () => _openPage(
-              context,
-              const ModulePlaceholderPage(title: 'Payrolls'),
-            ),
+            onTap: () => _openPage(context, const PayrollListPage()),
           ),
         ],
       ),
