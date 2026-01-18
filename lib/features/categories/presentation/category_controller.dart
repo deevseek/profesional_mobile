@@ -21,6 +21,7 @@ class CategoryController extends ChangeNotifier {
   CategoryPaginationLinks? _links;
   String _searchQuery = '';
   int _page = 1;
+  int _perPage = 15;
   Category? _category;
   Map<String, List<String>> _fieldErrors = const {};
 
@@ -33,20 +34,25 @@ class CategoryController extends ChangeNotifier {
   CategoryPaginationLinks? get links => _links;
   String get searchQuery => _searchQuery;
   int get page => _page;
+  int get perPage => _perPage;
   Category? get category => _category;
   Map<String, List<String>> get fieldErrors => _fieldErrors;
 
-  Future<void> loadCategories({String? search, int page = 1}) async {
+  Future<void> loadCategories({String? search, int page = 1, int? perPage}) async {
     _setLoading(true);
     _errorMessage = null;
     _successMessage = null;
     _fieldErrors = const {};
     _searchQuery = search ?? _searchQuery;
     _page = page;
+    if (perPage != null) {
+      _perPage = perPage;
+    }
     try {
       final result = await _repository.getCategories(
         search: _searchQuery.isEmpty ? null : _searchQuery,
         page: _page,
+        perPage: _perPage,
       );
       _categories = result.data;
       _meta = result.meta;

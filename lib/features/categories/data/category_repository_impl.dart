@@ -9,8 +9,16 @@ class CategoryRepositoryImpl implements CategoryRepository {
   final CategoryRemoteDataSource _remoteDataSource;
 
   @override
-  Future<CategoryPage> getCategories({String? search, int page = 1}) {
-    return _remoteDataSource.fetchCategories(search: search, page: page);
+  Future<CategoryPage> getCategories({
+    String? search,
+    int page = 1,
+    int? perPage,
+  }) {
+    return _remoteDataSource.fetchCategories(
+      search: search,
+      page: page,
+      perPage: perPage,
+    );
   }
 
   @override
