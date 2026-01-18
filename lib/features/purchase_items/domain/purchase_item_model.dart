@@ -1,58 +1,58 @@
 class PurchaseItem {
   const PurchaseItem({
     required this.id,
-    required this.name,
     this.purchaseId,
     this.productId,
-    this.description,
     this.quantity,
-    this.unitPrice,
-    this.total,
-    this.purchaseNumber,
-    this.supplierName,
+    this.price,
+    this.subtotal,
+    this.purchaseInvoiceNumber,
+    this.purchaseDate,
+    this.paymentStatus,
+    this.purchaseTotalAmount,
     this.productName,
+    this.productSku,
     this.createdAt,
     this.updatedAt,
   });
 
   final String id;
-  final String name;
   final String? purchaseId;
   final String? productId;
-  final String? description;
   final int? quantity;
-  final double? unitPrice;
-  final double? total;
-  final String? purchaseNumber;
-  final String? supplierName;
+  final double? price;
+  final double? subtotal;
+  final String? purchaseInvoiceNumber;
+  final DateTime? purchaseDate;
+  final String? paymentStatus;
+  final double? purchaseTotalAmount;
   final String? productName;
+  final String? productSku;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   factory PurchaseItem.fromJson(Map<String, dynamic> json) {
-    final purchaseValue =
-        json['purchase'] ?? json['purchase_number'] ?? json['invoice'] ?? json['reference'];
-    final productValue = json['product'] ?? json['product_name'] ?? json['productTitle'];
-    final supplierValue =
-        json['supplier'] ?? json['vendor'] ?? json['supplier_name'] ?? json['vendor_name'];
-    final resolvedProductName = _extractName(productValue);
+    final purchaseValue = json['purchase'];
+    final productValue = json['product'];
+    final purchaseMap = purchaseValue is Map ? purchaseValue : null;
+    final productMap = productValue is Map ? productValue : null;
 
     return PurchaseItem(
       id: '${json['id'] ?? json['purchase_item_id'] ?? ''}',
-      name:
-          '${json['name'] ?? json['item_name'] ?? json['title'] ?? resolvedProductName ?? json['product_id'] ?? ''}',
       purchaseId: _stringValue(json['purchase_id'] ?? json['purchaseId']),
       productId: _stringValue(json['product_id'] ?? json['productId']),
-      description: json['description']?.toString() ?? json['notes']?.toString(),
       quantity: _asInt(json['quantity'] ?? json['qty']),
-      unitPrice: _asDouble(json['unit_price'] ?? json['unitPrice'] ?? json['price']),
-      total:
-          _asDouble(json['total'] ?? json['total_price'] ?? json['totalPrice'] ?? json['subtotal']),
-      purchaseNumber: _extractName(purchaseValue) ??
-          _stringValue(json['purchase_number'] ?? json['reference_number']),
-      supplierName: _extractName(supplierValue) ??
-          _stringValue(json['supplier_title'] ?? json['vendor_title']),
-      productName: resolvedProductName,
+      price: _asDouble(json['price'] ?? json['unit_price'] ?? json['unitPrice']),
+      subtotal: _asDouble(json['subtotal'] ?? json['total'] ?? json['total_price']),
+      purchaseInvoiceNumber: _stringValue(
+        purchaseMap?['invoice_number'] ?? json['invoice_number'] ?? json['reference_number'],
+      ),
+      purchaseDate: _parseDate(purchaseMap?['purchase_date'] ?? json['purchase_date']),
+      paymentStatus: _stringValue(purchaseMap?['payment_status'] ?? json['payment_status']),
+      purchaseTotalAmount: _asDouble(purchaseMap?['total_amount'] ?? json['total_amount']),
+      productName:
+          _stringValue(productMap?['name'] ?? json['product_name'] ?? json['name'] ?? json['title']),
+      productSku: _stringValue(productMap?['sku'] ?? json['sku'] ?? json['product_sku']),
       createdAt: _parseDate(json['created_at'] ?? json['createdAt']),
       updatedAt: _parseDate(json['updated_at'] ?? json['updatedAt']),
     );
@@ -63,37 +63,39 @@ class PurchaseItem {
       if (purchaseId != null) 'purchase_id': purchaseId,
       if (productId != null) 'product_id': productId,
       if (quantity != null) 'quantity': quantity,
-      if (unitPrice != null) 'price': unitPrice,
+      if (price != null) 'price': price,
     };
   }
 
   PurchaseItem copyWith({
     String? id,
-    String? name,
     String? purchaseId,
     String? productId,
-    String? description,
     int? quantity,
-    double? unitPrice,
-    double? total,
-    String? purchaseNumber,
-    String? supplierName,
+    double? price,
+    double? subtotal,
+    String? purchaseInvoiceNumber,
+    DateTime? purchaseDate,
+    String? paymentStatus,
+    double? purchaseTotalAmount,
     String? productName,
+    String? productSku,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return PurchaseItem(
       id: id ?? this.id,
-      name: name ?? this.name,
       purchaseId: purchaseId ?? this.purchaseId,
       productId: productId ?? this.productId,
-      description: description ?? this.description,
       quantity: quantity ?? this.quantity,
-      unitPrice: unitPrice ?? this.unitPrice,
-      total: total ?? this.total,
-      purchaseNumber: purchaseNumber ?? this.purchaseNumber,
-      supplierName: supplierName ?? this.supplierName,
+      price: price ?? this.price,
+      subtotal: subtotal ?? this.subtotal,
+      purchaseInvoiceNumber: purchaseInvoiceNumber ?? this.purchaseInvoiceNumber,
+      purchaseDate: purchaseDate ?? this.purchaseDate,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      purchaseTotalAmount: purchaseTotalAmount ?? this.purchaseTotalAmount,
       productName: productName ?? this.productName,
+      productSku: productSku ?? this.productSku,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -147,21 +149,6 @@ class PurchaseItem {
     return trimmed.isEmpty ? null : trimmed;
   }
 
-  static String? _extractName(dynamic value) {
-    if (value == null) {
-      return null;
-    }
-    if (value is Map) {
-      final name = value['name'] ??
-          value['title'] ??
-          value['reference'] ??
-          value['purchase_number'] ??
-          value['invoice_number'] ??
-          value['sku'];
-      return name?.toString();
-    }
-    return value.toString();
-  }
 }
 
 class PurchaseItemPaginationMeta {
