@@ -277,6 +277,7 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
       children: [
         DropdownButtonFormField<String>(
           value: _selectedProductId,
+          isExpanded: true,
           decoration: InputDecoration(
             labelText: 'Product *',
             prefixIcon: const Icon(Icons.inventory_2_outlined),
@@ -295,7 +296,11 @@ class _PurchaseFormPageState extends State<PurchaseFormPage> {
               .map(
                 (product) => DropdownMenuItem<String>(
                   value: product.id,
-                  child: Text(_formatProductLabel(product)),
+                  child: Text(
+                    _formatProductLabel(product),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               )
               .toList(),
