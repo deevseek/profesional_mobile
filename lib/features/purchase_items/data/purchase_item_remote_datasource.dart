@@ -1,0 +1,88 @@
+import 'package:dio/dio.dart';
+
+import '../../../core/errors/api_exception.dart';
+import '../../../core/network/dio_client.dart';
+import '../domain/purchase_item_model.dart';
+
+class PurchaseItemRemoteDataSource {
+  PurchaseItemRemoteDataSource({DioClient? client}) : _client = client ?? DioClient();
+
+  final DioClient _client;
+
+  Future<PurchaseItemPage> fetchPurchaseItems({
+    String? search,
+    String? purchaseId,
+    int page = 1,
+  }) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      'purchase-items',
+      queryParameters: {
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (purchaseId != null && purchaseId.trim().isNotEmpty) 'purchase_id': purchaseId.trim(),
+        'page': page,
+      },
+    );
+
+    return PurchaseItemPage.fromJson(
+      _ensureMap(response.data, message: 'Invalid purchase items response'),
+    );
+  }
+
+  Future<PurchaseItem> fetchPurchaseItem(String id) async {
+    final response = await _client.get<Map<String, dynamic>>('purchase-items/$id');
+    final payload = _ensureMap(response.data, message: 'Invalid purchase item response');
+    final data = payload['data'];
+    if (data is Map<String, dynamic>) {
+      return PurchaseItem.fromJson(data);
+    }
+
+    return PurchaseItem.fromJson(payload);
+  }
+
+  Future<PurchaseItem> createPurchaseItem(PurchaseItem purchaseItem) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      'purchase-items',
+      data: purchaseItem.toPayload(),
+    );
+    final payload = _ensureMap(response.data, message: 'Invalid purchase item response');
+    final data = payload['data'];
+    if (data is Map<String, dynamic>) {
+      return PurchaseItem.fromJson(data);
+    }
+
+    return PurchaseItem.fromJson(payload);
+  }
+
+  Future<PurchaseItem> updatePurchaseItem(String id, PurchaseItem purchaseItem) async {
+    final response = await _client.patch<Map<String, dynamic>>(
+      'purchase-items/$id',
+      data: purchaseItem.toPayload(),
+    );
+    final payload = _ensureMap(response.data, message: 'Invalid purchase item response');
+    final data = payload['data'];
+    if (data is Map<String, dynamic>) {
+      return PurchaseItem.fromJson(data);
+    }
+
+    return PurchaseItem.fromJson(payload);
+  }
+
+  Future<void> deletePurchaseItem(String id) async {
+    await _client.delete<void>('purchase-items/$id');
+  }
+
+  Map<String, dynamic> _ensureMap(
+    dynamic data, {
+    required String message,
+  }) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    if (data is Map) {
+      return data.map((key, value) => MapEntry('$key', value));
+    }
+
+    throw ApiException(message);
+  }
+}
