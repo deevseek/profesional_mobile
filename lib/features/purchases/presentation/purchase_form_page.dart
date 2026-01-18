@@ -1,0 +1,256 @@
+import 'package:flutter/material.dart';
+
+import '../domain/purchase_model.dart';
+import 'purchase_controller.dart';
+
+class PurchaseFormPage extends StatefulWidget {
+  const PurchaseFormPage({super.key});
+
+  @override
+  State<PurchaseFormPage> createState() => _PurchaseFormPageState();
+}
+
+class _PurchaseFormPageState extends State<PurchaseFormPage> {
+  static const List<String> _statusOptions = [
+    'pending',
+    'paid',
+    'debt',
+    'cancelled',
+  ];
+
+  final PurchaseController _controller = PurchaseController();
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _supplierIdController;
+  late final TextEditingController _purchaseDateController;
+  late final TextEditingController _notesController;
+  String _statusValue = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _supplierIdController = TextEditingController();
+    _purchaseDateController = TextEditingController(text: _formatDate(DateTime.now()));
+    _notesController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _supplierIdController.dispose();
+    _purchaseDateController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('New Purchase'),
+          ),
+          body: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildHeader(context),
+                  if (_controller.errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildErrorBanner(context, _controller.errorMessage!),
+                    ),
+                  TextFormField(
+                    controller: _supplierIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Supplier ID *',
+                      prefixIcon: Icon(Icons.local_shipping_outlined),
+                    ),
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Supplier ID is required.';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  ),
+                  _buildFieldError('supplier_id'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _purchaseDateController,
+                    decoration: const InputDecoration(
+                      labelText: 'Purchase date *',
+                      hintText: 'YYYY-MM-DD',
+                      prefixIcon: Icon(Icons.event_outlined),
+                    ),
+                    textInputAction: TextInputAction.next,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Purchase date is required.';
+                      }
+                      if (_parseDate(value) == null) {
+                        return 'Enter a valid date (YYYY-MM-DD).';
+                      }
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                  ),
+                  _buildFieldError('purchase_date'),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: _statusValue.isEmpty ? null : _statusValue,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment status',
+                      prefixIcon: Icon(Icons.payments_outlined),
+                    ),
+                    items: _statusOptions
+                        .map(
+                          (status) => DropdownMenuItem<String>(
+                            value: status,
+                            child: Text(_formatStatusLabel(status)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _statusValue = value ?? '';
+                      });
+                    },
+                  ),
+                  _buildFieldError('payment_status'),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _notesController,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes',
+                      prefixIcon: Icon(Icons.notes_outlined),
+                    ),
+                    maxLines: 4,
+                    textInputAction: TextInputAction.newline,
+                  ),
+                  _buildFieldError('notes'),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    icon: _controller.isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.add),
+                    label: const Text('Create Purchase'),
+                    onPressed: _controller.isSubmitting ? null : _submit,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Add a new purchase',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Fields marked with * are required.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorBanner(BuildContext context, String message) {
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: ListTile(
+        leading: Icon(Icons.error_outline, color: Theme.of(context).colorScheme.onErrorContainer),
+        title: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFieldError(String field) {
+    final errors = _controller.fieldErrors[field];
+    if (errors == null || errors.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        errors.join('\n'),
+        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      ),
+    );
+  }
+
+  String _formatStatusLabel(String status) {
+    if (status.trim().isEmpty) {
+      return 'Unknown';
+    }
+    return status
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}')
+        .join(' ');
+  }
+
+  String _formatDate(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  DateTime? _parseDate(String value) {
+    if (value.trim().isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(value.trim());
+  }
+
+  Future<void> _submit() async {
+    _controller.clearError();
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      return;
+    }
+
+    final purchase = Purchase(
+      id: '',
+      supplierId: _supplierIdController.text.trim(),
+      purchaseDate: _parseDate(_purchaseDateController.text),
+      paymentStatus: _statusValue.isEmpty ? null : _statusValue,
+      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+    );
+
+    final success = await _controller.createPurchase(purchase);
+    if (!success || !mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop(true);
+  }
+}
