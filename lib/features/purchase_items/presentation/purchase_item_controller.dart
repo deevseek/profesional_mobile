@@ -21,6 +21,8 @@ class PurchaseItemController extends ChangeNotifier {
   PurchaseItemPaginationLinks? _links;
   String _searchQuery = '';
   String _purchaseIdQuery = '';
+  String _productIdQuery = '';
+  int? _perPage;
   int _page = 1;
   PurchaseItem? _purchaseItem;
   Map<String, List<String>> _fieldErrors = const {};
@@ -34,6 +36,8 @@ class PurchaseItemController extends ChangeNotifier {
   PurchaseItemPaginationLinks? get links => _links;
   String get searchQuery => _searchQuery;
   String get purchaseIdQuery => _purchaseIdQuery;
+  String get productIdQuery => _productIdQuery;
+  int? get perPage => _perPage;
   int get page => _page;
   PurchaseItem? get purchaseItem => _purchaseItem;
   Map<String, List<String>> get fieldErrors => _fieldErrors;
@@ -41,6 +45,8 @@ class PurchaseItemController extends ChangeNotifier {
   Future<void> loadPurchaseItems({
     String? search,
     String? purchaseId,
+    String? productId,
+    int? perPage,
     int page = 1,
   }) async {
     _setLoading(true);
@@ -49,11 +55,15 @@ class PurchaseItemController extends ChangeNotifier {
     _fieldErrors = const {};
     _searchQuery = search ?? _searchQuery;
     _purchaseIdQuery = purchaseId ?? _purchaseIdQuery;
+    _productIdQuery = productId ?? _productIdQuery;
+    _perPage = perPage ?? _perPage;
     _page = page;
     try {
       final result = await _repository.getPurchaseItems(
         search: _searchQuery.isEmpty ? null : _searchQuery,
         purchaseId: _purchaseIdQuery.isEmpty ? null : _purchaseIdQuery,
+        productId: _productIdQuery.isEmpty ? null : _productIdQuery,
+        perPage: _perPage,
         page: _page,
       );
       _purchaseItems = result.data;
