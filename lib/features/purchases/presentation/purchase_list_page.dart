@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../domain/purchase_model.dart';
 import 'purchase_controller.dart';
 import 'purchase_detail_page.dart';
+import 'purchase_form_page.dart';
 
 class PurchaseListPage extends StatefulWidget {
   const PurchaseListPage({super.key});
@@ -50,6 +51,23 @@ class _PurchaseListPageState extends State<PurchaseListPage> {
                 icon: const Icon(Icons.refresh),
               ),
             ],
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () async {
+              final created = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (context) => const PurchaseFormPage(),
+                ),
+              );
+              if (created == true) {
+                _controller.loadPurchases(
+                  search: _searchController.text,
+                  page: _controller.page,
+                );
+              }
+            },
+            icon: const Icon(Icons.add_shopping_cart_outlined),
+            label: const Text('New Purchase'),
           ),
           body: Column(
             children: [
@@ -146,7 +164,7 @@ class _PurchaseListPageState extends State<PurchaseListPage> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
       itemCount: _controller.purchases.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
