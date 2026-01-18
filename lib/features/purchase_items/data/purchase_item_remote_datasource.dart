@@ -12,17 +12,24 @@ class PurchaseItemRemoteDataSource {
   Future<PurchaseItemPage> fetchPurchaseItems({
     String? search,
     String? purchaseId,
+    String? productId,
+    int? perPage,
     int page = 1,
   }) async {
     final resolvedSearch = (search != null && search.trim().isNotEmpty)
         ? search.trim()
-        : (purchaseId != null && purchaseId.trim().isNotEmpty)
-            ? purchaseId.trim()
-            : null;
+        : null;
+    final resolvedPurchaseId =
+        (purchaseId != null && purchaseId.trim().isNotEmpty) ? purchaseId.trim() : null;
+    final resolvedProductId =
+        (productId != null && productId.trim().isNotEmpty) ? productId.trim() : null;
     final response = await _client.get<Map<String, dynamic>>(
       'purchase-items',
       queryParameters: {
         if (resolvedSearch != null) 'search': resolvedSearch,
+        if (resolvedPurchaseId != null) 'purchase_id': resolvedPurchaseId,
+        if (resolvedProductId != null) 'product_id': resolvedProductId,
+        if (perPage != null) 'per_page': perPage,
         'page': page,
       },
     );

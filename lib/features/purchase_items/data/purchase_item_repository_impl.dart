@@ -12,11 +12,15 @@ class PurchaseItemRepositoryImpl implements PurchaseItemRepository {
   Future<PurchaseItemPage> getPurchaseItems({
     String? search,
     String? purchaseId,
+    String? productId,
+    int? perPage,
     int page = 1,
   }) {
     return _remoteDataSource.fetchPurchaseItems(
       search: search,
       purchaseId: purchaseId,
+      productId: productId,
+      perPage: perPage,
       page: page,
     );
   }

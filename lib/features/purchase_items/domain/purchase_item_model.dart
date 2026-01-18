@@ -62,10 +62,8 @@ class PurchaseItem {
     return {
       if (purchaseId != null) 'purchase_id': purchaseId,
       if (productId != null) 'product_id': productId,
-      if (description != null) 'description': description,
       if (quantity != null) 'quantity': quantity,
       if (unitPrice != null) 'price': unitPrice,
-      if (total != null) 'subtotal': total,
     };
   }
 
@@ -154,7 +152,12 @@ class PurchaseItem {
       return null;
     }
     if (value is Map) {
-      final name = value['name'] ?? value['title'] ?? value['reference'] ?? value['purchase_number'];
+      final name = value['name'] ??
+          value['title'] ??
+          value['reference'] ??
+          value['purchase_number'] ??
+          value['invoice_number'] ??
+          value['sku'];
       return name?.toString();
     }
     return value.toString();

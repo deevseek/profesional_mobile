@@ -4,6 +4,8 @@ abstract class PurchaseItemRepository {
   Future<PurchaseItemPage> getPurchaseItems({
     String? search,
     String? purchaseId,
+    String? productId,
+    int? perPage,
     int page = 1,
   });
 
