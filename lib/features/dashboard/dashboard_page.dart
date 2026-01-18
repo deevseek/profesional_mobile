@@ -183,6 +183,14 @@ class DashboardPage extends ConsumerWidget {
         titleStyle: _sectionTitleStyle(),
         items: [
           DashboardMenuItem(
+            label: 'Purchases',
+            icon: Icons.shopping_cart_outlined,
+            onTap: () => _openPage(
+              context,
+              const ModulePlaceholderPage(title: 'Purchases'),
+            ),
+          ),
+          DashboardMenuItem(
             label: 'Transactions',
             icon: Icons.receipt_long_outlined,
             onTap: () => _openPage(context, const TransactionListPage()),
