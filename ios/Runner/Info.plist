@@ -24,6 +24,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Gunakan kamera untuk mengambil foto wajah saat absensi.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Gunakan galeri untuk memilih foto wajah saat absensi.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
