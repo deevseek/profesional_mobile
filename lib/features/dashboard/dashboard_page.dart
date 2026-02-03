@@ -10,6 +10,8 @@ import '../products/presentation/product_list_page.dart';
 import '../purchases/presentation/purchase_list_page.dart';
 import '../purchase_items/presentation/purchase_item_list_page.dart';
 import '../payrolls/presentation/payroll_list_page.dart';
+import '../attendances/presentation/attendance_list_page.dart';
+import '../attendances/presentation/attendance_log_list_page.dart';
 import '../service_logs/presentation/service_log_list_page.dart';
 import '../services/presentation/service_list_page.dart';
 import '../suppliers/presentation/supplier_list_page.dart';
@@ -154,18 +156,12 @@ class DashboardPage extends ConsumerWidget {
           DashboardMenuItem(
             label: 'Attendance',
             icon: Icons.fingerprint_outlined,
-            onTap: () => _openPage(
-              context,
-              const ModulePlaceholderPage(title: 'Attendance'),
-            ),
+            onTap: () => _openPage(context, const AttendanceListPage()),
           ),
           DashboardMenuItem(
             label: 'Attendance Logs',
             icon: Icons.event_available_outlined,
-            onTap: () => _openPage(
-              context,
-              const ModulePlaceholderPage(title: 'Attendance Logs'),
-            ),
+            onTap: () => _openPage(context, const AttendanceLogListPage()),
           ),
           DashboardMenuItem(
             label: 'Cash Sessions',
