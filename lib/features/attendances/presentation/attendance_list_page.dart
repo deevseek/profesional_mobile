@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../domain/attendance_model.dart';
 import 'attendance_controller.dart';
+import 'attendance_form_page.dart';
 
 class AttendanceListPage extends StatefulWidget {
   const AttendanceListPage({super.key});
@@ -55,6 +56,11 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
               ),
             ],
           ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _controller.isLoading ? null : _openAttendanceForm,
+            icon: const Icon(Icons.add_task_outlined),
+            label: const Text('New Attendance'),
+          ),
           body: Column(
             children: [
               _buildSearchBar(context),
@@ -87,6 +93,55 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
       attendanceDate: _controller.attendanceDate,
       page: 1,
     );
+  }
+
+  Future<void> _openAttendanceForm() async {
+    final employeeId = _employeeIdController.text.trim().isNotEmpty
+        ? _employeeIdController.text.trim()
+        : await _promptEmployeeId();
+    if (employeeId == null || employeeId.isEmpty) {
+      return;
+    }
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AttendanceFormPage(employeeId: employeeId),
+      ),
+    );
+    if (created == true) {
+      _controller.loadAttendances(page: _controller.page);
+    }
+  }
+
+  Future<String?> _promptEmployeeId() async {
+    final textController = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Masukkan Employee ID'),
+          content: TextField(
+            controller: textController,
+            decoration: const InputDecoration(
+              hintText: 'Contoh: 10',
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(textController.text.trim()),
+              child: const Text('Lanjut'),
+            ),
+          ],
+        );
+      },
+    );
+    textController.dispose();
+    return result;
   }
 
   Widget _buildSearchBar(BuildContext context) {
