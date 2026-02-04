@@ -6,6 +6,7 @@ import '../categories/presentation/category_list_page.dart';
 import '../customers/presentation/customer_list_page.dart';
 import '../employees/presentation/employee_list_page.dart';
 import '../finances/presentation/finance_list_page.dart';
+import '../pos/presentation/pos_page.dart';
 import '../products/presentation/product_list_page.dart';
 import '../purchases/presentation/purchase_list_page.dart';
 import '../purchase_items/presentation/purchase_item_list_page.dart';
@@ -164,12 +165,9 @@ class DashboardPage extends ConsumerWidget {
             onTap: () => _openPage(context, const AttendanceLogListPage()),
           ),
           DashboardMenuItem(
-            label: 'Cash Sessions',
+            label: 'POS',
             icon: Icons.point_of_sale_outlined,
-            onTap: () => _openPage(
-              context,
-              const ModulePlaceholderPage(title: 'Cash Sessions'),
-            ),
+            onTap: () => _openPage(context, const PosPage()),
           ),
           DashboardMenuItem(
             label: 'Service Logs',
