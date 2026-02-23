@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:profesionalservis_mobile/features/attendance/presentation/pages/attendance_page.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/features/customer/presentation/pages/customer_page.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summary_model.dart';
@@ -97,6 +98,8 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
                     ? const CustomerPage(key: ValueKey('customer-page'))
                     : _selectedMenuIndex == 4
                     ? const TransactionPage(key: ValueKey('transaction-page'))
+                    : _selectedMenuIndex == 5
+                    ? const AttendancePage(key: ValueKey('attendance-page'))
                     : _ComingSoonContent(
                         key: ValueKey('menu-$_selectedMenuIndex'),
                         item: _menuItems[_selectedMenuIndex],
