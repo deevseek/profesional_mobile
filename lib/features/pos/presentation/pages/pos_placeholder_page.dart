@@ -6,6 +6,7 @@ import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summ
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
+import 'package:profesionalservis_mobile/features/transaction/presentation/pages/transaction_page.dart';
 import 'package:profesionalservis_mobile/shared/widgets/dashboard_widgets.dart';
 
 class PosPlaceholderPage extends ConsumerStatefulWidget {
@@ -91,6 +92,8 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
                     ? const _PosContent(key: ValueKey('pos-content'))
                     : _selectedMenuIndex == 2
                     ? const ProductPage(key: ValueKey('product-page'))
+                    : _selectedMenuIndex == 4
+                    ? const TransactionPage(key: ValueKey('transaction-page'))
                     : _ComingSoonContent(
                         key: ValueKey('menu-$_selectedMenuIndex'),
                         item: _menuItems[_selectedMenuIndex],
