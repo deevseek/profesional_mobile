@@ -48,14 +48,14 @@ class _TenantSelectionPageState extends ConsumerState<TenantSelectionPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Contoh: sciencecomputer',
+                'Link toko Anda biasanya berbentuk https://{kode-tenant}.profesionalservis.com',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
               AppInput(
                 controller: _tenantController,
                 label: 'Kode Tenant',
-                hint: 'sciencecomputer',
+                hint: 'Link toko Anda biasanya berbentuk https://{kode-tenant}.profesionalservis.com',
                 prefixIcon: Icons.apartment,
               ),
               if (tenantState.errorMessage != null) ...[
