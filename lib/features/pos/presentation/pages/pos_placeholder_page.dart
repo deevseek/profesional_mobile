@@ -39,7 +39,7 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Moka Style Dashboard'),
+        title: const Text('Dashboard'),
         actions: [
           IconButton(
             tooltip: 'Logout',
