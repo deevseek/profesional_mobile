@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summary_model.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
+import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
 import 'package:profesionalservis_mobile/shared/widgets/dashboard_widgets.dart';
 
 class PosPlaceholderPage extends ConsumerStatefulWidget {
@@ -85,6 +86,8 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
                         summaryAsync: dashboardSummary,
                         onRefresh: () => ref.refresh(dashboardSummaryProvider.future),
                       )
+                    : _selectedMenuIndex == 2
+                    ? const ProductPage(key: ValueKey('product-page'))
                     : _ComingSoonContent(
                         key: ValueKey('menu-$_selectedMenuIndex'),
                         item: _menuItems[_selectedMenuIndex],
