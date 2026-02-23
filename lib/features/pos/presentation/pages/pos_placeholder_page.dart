@@ -9,6 +9,7 @@ import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
 import 'package:profesionalservis_mobile/features/settings/presentation/pages/settings_page.dart';
+import 'package:profesionalservis_mobile/features/services/presentation/pages/service_list_screen.dart';
 import 'package:profesionalservis_mobile/features/transaction/presentation/pages/transaction_page.dart';
 import 'package:profesionalservis_mobile/shared/widgets/dashboard_widgets.dart';
 
@@ -28,6 +29,7 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
     DashboardMenuItem(label: 'Produk', icon: Icons.inventory_2_rounded),
     DashboardMenuItem(label: 'Pelanggan', icon: Icons.people_alt_rounded),
     DashboardMenuItem(label: 'Transaksi', icon: Icons.receipt_long_rounded),
+    DashboardMenuItem(label: 'Service', icon: Icons.build_circle_rounded),
     DashboardMenuItem(label: 'Absensi', icon: Icons.fact_check_rounded),
     DashboardMenuItem(label: 'Pengaturan', icon: Icons.settings_rounded),
   ];
@@ -100,8 +102,10 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
                     : _selectedMenuIndex == 4
                     ? const TransactionPage(key: ValueKey('transaction-page'))
                     : _selectedMenuIndex == 5
-                    ? const AttendancePage(key: ValueKey('attendance-page'))
+                    ? const ServiceListScreen(key: ValueKey('service-page'))
                     : _selectedMenuIndex == 6
+                    ? const AttendancePage(key: ValueKey('attendance-page'))
+                    : _selectedMenuIndex == 7
                     ? const SettingsPage(key: ValueKey('settings-page'))
                     : _ComingSoonContent(
                         key: ValueKey('menu-$_selectedMenuIndex'),
