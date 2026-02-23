@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/storage/secure_storage_service.dart';
 import 'package:profesionalservis_mobile/tenant/tenant_state_provider.dart';
 
@@ -27,7 +28,10 @@ final dioProvider = Provider<Dio>((ref) {
         }
         handler.next(options);
       },
-      onError: (error, handler) {
+      onError: (error, handler) async {
+        if (error.response?.statusCode == 401) {
+          await ref.read(authStateProvider.notifier).handleUnauthorized();
+        }
         handler.next(error);
       },
     ),

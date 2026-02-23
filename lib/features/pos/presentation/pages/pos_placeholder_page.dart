@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/core/loading/loading_overlay.dart';
+import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/shared/widgets/app_button.dart';
 import 'package:profesionalservis_mobile/shared/widgets/app_card.dart';
 import 'package:profesionalservis_mobile/shared/widgets/app_input.dart';
@@ -10,9 +12,23 @@ class PosPlaceholderPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profesional Servis'),
+        title: const Text('Dashboard POS'),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: () async {
+              await ref.read(authStateProvider.notifier).logout();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+            icon: const Icon(Icons.logout),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -20,7 +36,7 @@ class PosPlaceholderPage extends ConsumerWidget {
           child: ListView(
             children: [
               Text(
-                'Kasir Cepat',
+                'Halo, ${authState.user?.name.isNotEmpty == true ? authState.user!.name : 'User'}',
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
@@ -28,7 +44,7 @@ class PosPlaceholderPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Struktur enterprise siap dikembangkan untuk kebutuhan POS production.',
+                'Anda sudah login dan terhubung ke backend.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
