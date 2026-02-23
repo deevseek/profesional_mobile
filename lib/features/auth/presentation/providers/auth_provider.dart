@@ -5,7 +5,8 @@ import 'package:profesionalservis_mobile/features/auth/data/models/user_model.da
 import 'package:profesionalservis_mobile/features/auth/data/repositories/auth_repository.dart';
 import 'package:profesionalservis_mobile/storage/secure_storage_service.dart';
 
-final authStateProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final StateNotifierProvider<AuthNotifier, AuthState> authStateProvider =
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final notifier = AuthNotifier(
     repository: ref.watch(authRepositoryProvider),
     storage: ref.watch(secureStorageServiceProvider),

@@ -6,7 +6,7 @@ import 'package:profesionalservis_mobile/tenant/tenant_state_provider.dart';
 class TenantGuard {
   const TenantGuard._();
 
-  static String? redirect(WidgetRef ref, GoRouterState state) {
+  static String? redirect(Ref ref, GoRouterState state) {
     final tenantState = ref.read(tenantStateProvider);
     final authState = ref.read(authStateProvider);
     final location = state.uri.path;
