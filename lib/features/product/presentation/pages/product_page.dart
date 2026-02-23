@@ -33,7 +33,7 @@ class ProductPage extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Kelola stok produk ala Moka POS.',
+              'Kelola stok produk',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF667085),
               ),
