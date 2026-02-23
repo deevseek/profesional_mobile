@@ -33,7 +33,7 @@ class CustomerPage extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Mini CRM sederhana ala Moka.',
+              'Customer',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFF667085),
               ),
