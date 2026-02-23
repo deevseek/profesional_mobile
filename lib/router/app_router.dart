@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/core/error/global_error_handler.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/pages/login_page.dart';
+import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/pages/pos_placeholder_page.dart';
-import 'package:profesionalservis_mobile/features/tenant/presentation/pages/tenant_loading_page.dart';
+import 'package:profesionalservis_mobile/features/splash/presentation/pages/splash_page.dart';
 import 'package:profesionalservis_mobile/features/tenant/presentation/pages/tenant_selection_page.dart';
 import 'package:profesionalservis_mobile/tenant/tenant_guard.dart';
 import 'package:profesionalservis_mobile/tenant/tenant_state_provider.dart';
@@ -16,17 +17,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ..onDispose(refreshListenable.dispose)
     ..listen<TenantState>(tenantStateProvider, (_, __) {
       refreshListenable.value++;
+    })
+    ..listen<AuthState>(authStateProvider, (_, __) {
+      refreshListenable.value++;
     });
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: '/tenant-loading',
+    initialLocation: '/splash',
     refreshListenable: refreshListenable,
     redirect: (context, state) => TenantGuard.redirect(ref, state),
     routes: [
       GoRoute(
-        path: '/tenant-loading',
-        builder: (context, state) => const TenantLoadingPage(),
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
       ),
       GoRoute(
         path: '/tenant',

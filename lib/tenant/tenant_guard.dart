@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/tenant/tenant_state_provider.dart';
 
 class TenantGuard {
@@ -7,11 +8,12 @@ class TenantGuard {
 
   static String? redirect(WidgetRef ref, GoRouterState state) {
     final tenantState = ref.read(tenantStateProvider);
+    final authState = ref.read(authStateProvider);
     final location = state.uri.path;
 
-    if (tenantState.isBootstrapping) {
-      if (location != '/tenant-loading') {
-        return '/tenant-loading';
+    if (tenantState.isBootstrapping || authState.isBootstrapping) {
+      if (location != '/splash') {
+        return '/splash';
       }
       return null;
     }
@@ -23,8 +25,15 @@ class TenantGuard {
       return null;
     }
 
-    if (location == '/tenant' || location == '/tenant-loading') {
-      return '/login';
+    if (!authState.isAuthenticated) {
+      if (location != '/login') {
+        return '/login';
+      }
+      return null;
+    }
+
+    if (location == '/login' || location == '/tenant' || location == '/splash') {
+      return '/pos';
     }
 
     return null;
