@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summary_model.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
 import 'package:profesionalservis_mobile/shared/widgets/dashboard_widgets.dart';
@@ -86,6 +87,8 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
                         summaryAsync: dashboardSummary,
                         onRefresh: () => ref.refresh(dashboardSummaryProvider.future),
                       )
+                    : _selectedMenuIndex == 1
+                    ? const _PosContent(key: ValueKey('pos-content'))
                     : _selectedMenuIndex == 2
                     ? const ProductPage(key: ValueKey('product-page'))
                     : _ComingSoonContent(
@@ -99,6 +102,466 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
       ),
     );
   }
+}
+
+class _PosContent extends ConsumerWidget {
+  const _PosContent({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(posProvider);
+    final notifier = ref.read(posProvider.notifier);
+
+    return Column(
+      children: [
+        if (state.errorMessage != null)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3F2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFECDCA)),
+            ),
+            child: Text(
+              state.errorMessage!,
+              style: const TextStyle(color: Color(0xFFB42318), fontWeight: FontWeight.w600),
+            ),
+          ),
+        if (state.checkoutResult != null)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFA6F4C5)),
+            ),
+            child: Text(
+              'Checkout sukses · Invoice: ${state.checkoutResult!.invoice} · Subtotal: ${_money(state.checkoutResult!.subtotal)} · Total: ${_money(state.checkoutResult!.total)} · Kembalian: ${_money(state.checkoutResult!.change)}',
+              style: const TextStyle(color: Color(0xFF027A48), fontWeight: FontWeight.w600),
+            ),
+          ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _ProductPanel(state: state, notifier: notifier),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: _CartPanel(state: state, notifier: notifier),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductPanel extends StatelessWidget {
+  const _ProductPanel({required this.state, required this.notifier});
+
+  final PosState state;
+  final PosNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E7EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Kasir (POS)',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Cari produk cepat...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: state.isLoadingProducts
+                  ? const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+            ),
+            onChanged: notifier.setSearch,
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: GridView.builder(
+              itemCount: state.filteredProducts.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1.32,
+              ),
+              itemBuilder: (context, index) {
+                final product = state.filteredProducts[index];
+                return InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => notifier.addToCart(product),
+                  child: Ink(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const Spacer(),
+                        Text(_money(product.price), style: const TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 2),
+                        Text(
+                          product.category.isEmpty ? 'Umum' : product.category,
+                          style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartPanel extends StatelessWidget {
+  const _CartPanel({required this.state, required this.notifier});
+
+  final PosState state;
+  final PosNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4E7EC)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Cart', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              ),
+              PopupMenuButton<String>(
+                onSelected: (holdId) => notifier.resumeCart(holdId),
+                itemBuilder: (context) => state.heldCarts.entries
+                    .map(
+                      (entry) => PopupMenuItem(
+                        value: entry.key,
+                        child: Text('${entry.key} (${entry.value.length} item)'),
+                      ),
+                    )
+                    .toList(growable: false),
+                child: Chip(
+                  label: Text('Hold (${state.heldCarts.length})'),
+                  avatar: const Icon(Icons.pause_circle_outline_rounded, size: 18),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: state.cartItems.isEmpty
+                ? const Center(child: Text('Keranjang kosong. Pilih produk di kiri.'))
+                : ListView.separated(
+                    itemBuilder: (context, index) {
+                      final item = state.cartItems[index];
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: const Color(0xFFF9FAFB),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                ),
+                                IconButton(
+                                  onPressed: () => notifier.removeItem(item.product.id),
+                                  icon: const Icon(Icons.delete_outline_rounded),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () => notifier.updateQuantity(
+                                    productId: item.product.id,
+                                    quantity: item.quantity - 1,
+                                  ),
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                ),
+                                GestureDetector(
+                                  onTap: () => _showNumberEditor(
+                                    context: context,
+                                    title: 'Edit quantity',
+                                    initial: item.quantity,
+                                    onSave: (value) => notifier.updateQuantity(
+                                      productId: item.product.id,
+                                      quantity: value,
+                                    ),
+                                  ),
+                                  child: Chip(label: Text('Qty ${item.quantity}')),
+                                ),
+                                IconButton(
+                                  onPressed: () => notifier.updateQuantity(
+                                    productId: item.product.id,
+                                    quantity: item.quantity + 1,
+                                  ),
+                                  icon: const Icon(Icons.add_circle_outline),
+                                ),
+                                const Spacer(),
+                                Text(_money(item.lineTotal), style: const TextStyle(fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                            TextButton.icon(
+                              onPressed: () => _showNumberEditor(
+                                context: context,
+                                title: 'Diskon item (${item.product.name})',
+                                initial: item.discount,
+                                onSave: (value) => notifier.updateDiscount(
+                                  productId: item.product.id,
+                                  discount: value,
+                                ),
+                              ),
+                              icon: const Icon(Icons.percent_rounded, size: 18),
+                              label: Text('Diskon: ${_money(item.discount)}'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemCount: state.cartItems.length,
+                  ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('Pajak %'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Slider(
+                  min: 0,
+                  max: 20,
+                  divisions: 20,
+                  value: state.taxPercent.toDouble(),
+                  label: '${state.taxPercent}%',
+                  onChanged: (value) => notifier.setTaxPercent(value.round()),
+                ),
+              ),
+              Text('${state.taxPercent}%'),
+            ],
+          ),
+          _SummaryRow(label: 'Subtotal', value: _money(state.subtotal)),
+          _SummaryRow(label: 'Pajak', value: _money(state.taxAmount)),
+          _SummaryRow(label: 'Total', value: _money(state.total), isStrong: true),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: state.cartItems.isEmpty ? null : notifier.holdCart,
+                  icon: const Icon(Icons.pause_circle_outline_rounded),
+                  label: const Text('Hold cart'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: state.cartItems.isEmpty
+                      ? null
+                      : () async {
+                          final clear = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Clear cart?'),
+                              content: const Text('Semua item di cart akan dihapus.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Batal'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text('Hapus'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (clear == true) {
+                            notifier.clearCart();
+                          }
+                        },
+                  icon: const Icon(Icons.cleaning_services_outlined),
+                  label: const Text('Clear cart'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: state.cartItems.isEmpty || state.isSubmittingCheckout
+                  ? null
+                  : () => _showCheckoutDialog(context: context, state: state, notifier: notifier),
+              icon: state.isSubmittingCheckout
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.receipt_long_rounded),
+              label: const Text('Checkout'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showCheckoutDialog({
+  required BuildContext context,
+  required PosState state,
+  required PosNotifier notifier,
+}) async {
+  final paidController = TextEditingController(text: state.total.toString());
+
+  final shouldCheckout = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Konfirmasi checkout'),
+      content: TextField(
+        controller: paidController,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: 'Uang dibayar'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Proses'),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldCheckout == true) {
+    final paid = int.tryParse(paidController.text.trim()) ?? 0;
+    await notifier.checkout(paidAmount: paid);
+  }
+}
+
+Future<void> _showNumberEditor({
+  required BuildContext context,
+  required String title,
+  required int initial,
+  required ValueChanged<int> onSave,
+}) async {
+  final controller = TextEditingController(text: initial.toString());
+  final value = await showDialog<int>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: 'Nilai'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(int.tryParse(controller.text.trim()) ?? initial),
+          child: const Text('Simpan'),
+        ),
+      ],
+    ),
+  );
+
+  if (value != null) {
+    onSave(value);
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.label, required this.value, this.isStrong = false});
+
+  final String label;
+  final String value;
+  final bool isStrong;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontWeight: isStrong ? FontWeight.w800 : FontWeight.w600,
+      fontSize: isStrong ? 16 : 14,
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Text(label, style: style),
+          const Spacer(),
+          Text(value, style: style),
+        ],
+      ),
+    );
+  }
+}
+
+String _money(int value) {
+  final raw = value.toString();
+  final grouped = raw.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  return 'Rp $grouped';
 }
 
 class _SidebarMenu extends StatelessWidget {
