@@ -5,6 +5,7 @@ import 'package:profesionalservis_mobile/features/attendance/presentation/pages/
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/features/customer/presentation/pages/customer_page.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summary_model.dart';
+import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
@@ -163,19 +164,41 @@ class _PosContent extends ConsumerWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _ProductPanel(state: state, notifier: notifier),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: _CartPanel(state: state, notifier: notifier),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final useVerticalLayout = constraints.maxWidth < 980;
+
+                if (useVerticalLayout) {
+                  return Column(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: _ProductPanel(state: state, notifier: notifier),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        flex: 2,
+                        child: _CartPanel(state: state, notifier: notifier),
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: _ProductPanel(state: state, notifier: notifier),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: _CartPanel(state: state, notifier: notifier),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -289,120 +312,165 @@ class _CartPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE4E7EC)),
       ),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _CartHeader(state: state, notifier: notifier)),
+          if (state.cartItems.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: _EmptyStatePanel(
+                key: ValueKey('empty-cart'),
+                icon: Icons.remove_shopping_cart_rounded,
+                title: 'Keranjang masih kosong',
+                subtitle: 'Pilih produk terlebih dahulu untuk memulai transaksi.',
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final item = state.cartItems[index];
+                return Padding(
+                  padding: EdgeInsets.only(bottom: index == state.cartItems.length - 1 ? 0 : 8),
+                  child: _CartItemTile(item: item, notifier: notifier),
+                );
+              }, childCount: state.cartItems.length),
+            ),
+          SliverToBoxAdapter(
+            child: _CartFooter(state: state, notifier: notifier),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartHeader extends StatelessWidget {
+  const _CartHeader({required this.state, required this.notifier});
+
+  final PosState state;
+  final PosNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Expanded(
+            child: Text('Cart', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          ),
+          PopupMenuButton<String>(
+            onSelected: (holdId) => notifier.resumeCart(holdId),
+            itemBuilder: (context) => state.heldCarts.entries
+                .map(
+                  (entry) => PopupMenuItem(
+                    value: entry.key,
+                    child: Text('${entry.key} (${entry.value.length} item)'),
+                  ),
+                )
+                .toList(growable: false),
+            child: Chip(
+              label: Text('Hold (${state.heldCarts.length})'),
+              avatar: const Icon(Icons.pause_circle_outline_rounded, size: 18),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartItemTile extends StatelessWidget {
+  const _CartItemTile({required this.item, required this.notifier});
+
+  final PosCartItem item;
+  final PosNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF9FAFB),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Expanded(
-                child: Text('Cart', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              Expanded(
+                child: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
-              PopupMenuButton<String>(
-                onSelected: (holdId) => notifier.resumeCart(holdId),
-                itemBuilder: (context) => state.heldCarts.entries
-                    .map(
-                      (entry) => PopupMenuItem(
-                        value: entry.key,
-                        child: Text('${entry.key} (${entry.value.length} item)'),
-                      ),
-                    )
-                    .toList(growable: false),
-                child: Chip(
-                  label: Text('Hold (${state.heldCarts.length})'),
-                  avatar: const Icon(Icons.pause_circle_outline_rounded, size: 18),
-                ),
+              IconButton(
+                onPressed: () => notifier.removeItem(item.product.id),
+                icon: const Icon(Icons.delete_outline_rounded),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 260),
-              child: state.cartItems.isEmpty
-                  ? const _EmptyStatePanel(
-                      key: ValueKey('empty-cart'),
-                      icon: Icons.remove_shopping_cart_rounded,
-                      title: 'Keranjang masih kosong',
-                      subtitle: 'Pilih produk terlebih dahulu untuk memulai transaksi.',
-                    )
-                  : ListView.separated(
-                      key: const ValueKey('cart-items'),
-                    itemBuilder: (context, index) {
-                      final item = state.cartItems[index];
-                      return Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: const Color(0xFFF9FAFB),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                                ),
-                                IconButton(
-                                  onPressed: () => notifier.removeItem(item.product.id),
-                                  icon: const Icon(Icons.delete_outline_rounded),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () => notifier.updateQuantity(
-                                    productId: item.product.id,
-                                    quantity: item.quantity - 1,
-                                  ),
-                                  icon: const Icon(Icons.remove_circle_outline),
-                                ),
-                                GestureDetector(
-                                  onTap: () => _showNumberEditor(
-                                    context: context,
-                                    title: 'Edit quantity',
-                                    initial: item.quantity,
-                                    onSave: (value) => notifier.updateQuantity(
-                                      productId: item.product.id,
-                                      quantity: value,
-                                    ),
-                                  ),
-                                  child: Chip(label: Text('Qty ${item.quantity}')),
-                                ),
-                                IconButton(
-                                  onPressed: () => notifier.updateQuantity(
-                                    productId: item.product.id,
-                                    quantity: item.quantity + 1,
-                                  ),
-                                  icon: const Icon(Icons.add_circle_outline),
-                                ),
-                                const Spacer(),
-                                Text(_money(item.lineTotal), style: const TextStyle(fontWeight: FontWeight.w700)),
-                              ],
-                            ),
-                            TextButton.icon(
-                              onPressed: () => _showNumberEditor(
-                                context: context,
-                                title: 'Diskon item (${item.product.name})',
-                                initial: item.discount,
-                                onSave: (value) => notifier.updateDiscount(
-                                  productId: item.product.id,
-                                  discount: value,
-                                ),
-                              ),
-                              icon: const Icon(Icons.percent_rounded, size: 18),
-                              label: Text('Diskon: ${_money(item.discount)}'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemCount: state.cartItems.length,
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => notifier.updateQuantity(
+                  productId: item.product.id,
+                  quantity: item.quantity - 1,
+                ),
+                icon: const Icon(Icons.remove_circle_outline),
+              ),
+              GestureDetector(
+                onTap: () => _showNumberEditor(
+                  context: context,
+                  title: 'Edit quantity',
+                  initial: item.quantity,
+                  onSave: (value) => notifier.updateQuantity(
+                    productId: item.product.id,
+                    quantity: value,
                   ),
-            ),
+                ),
+                child: Chip(label: Text('Qty ${item.quantity}')),
+              ),
+              IconButton(
+                onPressed: () => notifier.updateQuantity(
+                  productId: item.product.id,
+                  quantity: item.quantity + 1,
+                ),
+                icon: const Icon(Icons.add_circle_outline),
+              ),
+              const Spacer(),
+              Text(_money(item.lineTotal), style: const TextStyle(fontWeight: FontWeight.w700)),
+            ],
           ),
-          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () => _showNumberEditor(
+              context: context,
+              title: 'Diskon item (${item.product.name})',
+              initial: item.discount,
+              onSave: (value) => notifier.updateDiscount(
+                productId: item.product.id,
+                discount: value,
+              ),
+            ),
+            icon: const Icon(Icons.percent_rounded, size: 18),
+            label: Text('Diskon: ${_money(item.discount)}'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartFooter extends StatelessWidget {
+  const _CartFooter({required this.state, required this.notifier});
+
+  final PosState state;
+  final PosNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: [
           Row(
             children: [
               const Text('Pajak %'),
