@@ -350,7 +350,7 @@ class _FinalCostSectionState extends ConsumerState<_FinalCostSection> {
       trailing: TextButton(
         onPressed: () async {
           final amount = int.tryParse(_controller.text) ?? 0;
-          final ok = await notifier.updateService({'final_cost': amount});
+          final ok = await notifier.updateService({'service_fee': amount});
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(ok ? 'Total biaya diperbarui' : 'Gagal update biaya')),

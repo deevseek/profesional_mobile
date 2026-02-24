@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 
-enum ServiceStatus { pending, checking, progress, done, delivered }
+enum ServiceStatus { menunggu, diagnosa, dikerjakan, selesai, diambil }
 
 extension ServiceStatusX on ServiceStatus {
   static ServiceStatus fromRaw(String raw) {
     switch (raw.toLowerCase()) {
-      case 'checking':
-        return ServiceStatus.checking;
-      case 'progress':
-        return ServiceStatus.progress;
-      case 'done':
-        return ServiceStatus.done;
-      case 'delivered':
-        return ServiceStatus.delivered;
+      case 'diagnosa':
+        return ServiceStatus.diagnosa;
+      case 'dikerjakan':
+        return ServiceStatus.dikerjakan;
+      case 'selesai':
+        return ServiceStatus.selesai;
+      case 'diambil':
+        return ServiceStatus.diambil;
+      case 'pending':
+      case 'menunggu':
       default:
-        return ServiceStatus.pending;
+        return ServiceStatus.menunggu;
     }
   }
 
@@ -22,45 +24,45 @@ extension ServiceStatusX on ServiceStatus {
 
   String get label {
     switch (this) {
-      case ServiceStatus.pending:
-        return 'Pending';
-      case ServiceStatus.checking:
-        return 'Checking';
-      case ServiceStatus.progress:
-        return 'Progress';
-      case ServiceStatus.done:
-        return 'Done';
-      case ServiceStatus.delivered:
-        return 'Delivered';
+      case ServiceStatus.menunggu:
+        return 'Menunggu';
+      case ServiceStatus.diagnosa:
+        return 'Diagnosa';
+      case ServiceStatus.dikerjakan:
+        return 'Dikerjakan';
+      case ServiceStatus.selesai:
+        return 'Selesai';
+      case ServiceStatus.diambil:
+        return 'Diambil';
     }
   }
 
   Color get color {
     switch (this) {
-      case ServiceStatus.pending:
+      case ServiceStatus.menunggu:
         return const Color(0xFF98A2B3);
-      case ServiceStatus.checking:
+      case ServiceStatus.diagnosa:
         return const Color(0xFF175CD3);
-      case ServiceStatus.progress:
+      case ServiceStatus.dikerjakan:
         return const Color(0xFFFF7A00);
-      case ServiceStatus.done:
+      case ServiceStatus.selesai:
         return const Color(0xFF12B76A);
-      case ServiceStatus.delivered:
+      case ServiceStatus.diambil:
         return const Color(0xFF101828);
     }
   }
 
   ServiceStatus? get next {
     switch (this) {
-      case ServiceStatus.pending:
-        return ServiceStatus.checking;
-      case ServiceStatus.checking:
-        return ServiceStatus.progress;
-      case ServiceStatus.progress:
-        return ServiceStatus.done;
-      case ServiceStatus.done:
-        return ServiceStatus.delivered;
-      case ServiceStatus.delivered:
+      case ServiceStatus.menunggu:
+        return ServiceStatus.diagnosa;
+      case ServiceStatus.diagnosa:
+        return ServiceStatus.dikerjakan;
+      case ServiceStatus.dikerjakan:
+        return ServiceStatus.selesai;
+      case ServiceStatus.selesai:
+        return ServiceStatus.diambil;
+      case ServiceStatus.diambil:
         return null;
     }
   }

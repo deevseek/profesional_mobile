@@ -29,21 +29,27 @@ class ServiceModel with _$ServiceModel {
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
+    final customer = json['customer'] is Map<String, dynamic>
+        ? json['customer'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+
     return _$ServiceModelFromJson({
       ...json,
       'id': _asString(json['id']),
-      'service_number': _asString(json['service_number']),
+      'service_number': _buildServiceNumber(json['id']),
       'customer_id': _asString(json['customer_id']),
-      'customer_name': _asString(json['customer_name']),
-      'device_name': _asString(json['device_name']),
-      'device_type': _asString(json['device_type']),
+      'customer_name': _asString(json['customer_name']).isNotEmpty
+          ? _asString(json['customer_name'])
+          : _asString(customer['name']),
+      'device_name': _asString(json['device']),
+      'device_type': _asString(json['model']),
       'complaint': _asString(json['complaint']),
       'diagnosis': _asString(json['diagnosis']),
-      'status': _asString(json['status']).isEmpty ? 'pending' : _asString(json['status']),
+      'status': _normalizeStatus(_asString(json['status'])),
       'technician_id': _asString(json['technician_id']),
       'technician_name': _asString(json['technician_name']),
-      'estimated_cost': _asInt(json['estimated_cost']),
-      'final_cost': _asInt(json['final_cost']),
+      'estimated_cost': _asInt(json['deposit']),
+      'final_cost': _asInt(json['service_fee']),
       'items': rawItems is List ? rawItems : <Map<String, dynamic>>[],
     });
   }
@@ -62,4 +68,40 @@ int _asInt(dynamic value) {
     return int.tryParse(value) ?? 0;
   }
   return 0;
+}
+
+String _buildServiceNumber(dynamic id) {
+  final numericId = _asInt(id);
+  if (numericId <= 0) {
+    return '';
+  }
+  final year = DateTime.now().year;
+  return 'SVC-$year-${numericId.toString().padLeft(4, '0')}';
+}
+
+String _normalizeStatus(String rawStatus) {
+  switch (rawStatus.toLowerCase()) {
+    case 'menunggu':
+      return 'menunggu';
+    case 'diagnosa':
+      return 'diagnosa';
+    case 'dikerjakan':
+      return 'dikerjakan';
+    case 'selesai':
+      return 'selesai';
+    case 'diambil':
+      return 'diambil';
+    case 'pending':
+      return 'menunggu';
+    case 'checking':
+      return 'diagnosa';
+    case 'progress':
+      return 'dikerjakan';
+    case 'done':
+      return 'selesai';
+    case 'delivered':
+      return 'diambil';
+    default:
+      return rawStatus.isEmpty ? 'menunggu' : rawStatus;
+  }
 }

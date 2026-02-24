@@ -18,15 +18,23 @@ class ServiceItemModel with _$ServiceItemModel {
   }) = _ServiceItemModel;
 
   factory ServiceItemModel.fromJson(Map<String, dynamic> json) {
+    final product = json['product'] is Map<String, dynamic>
+        ? json['product'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final qty = _asInt(json['qty']);
+    final price = _asInt(json['price']);
+
     return _$ServiceItemModelFromJson({
       ...json,
       'id': _asString(json['id']),
       'service_id': _asString(json['service_id']),
       'product_id': _asString(json['product_id']),
-      'product_name': _asString(json['product_name']),
-      'qty': _asInt(json['qty']),
-      'price': _asInt(json['price']),
-      'subtotal': _asInt(json['subtotal']),
+      'product_name': _asString(json['product_name']).isNotEmpty
+          ? _asString(json['product_name'])
+          : _asString(product['name']),
+      'qty': qty,
+      'price': price,
+      'subtotal': _asInt(json['subtotal']) > 0 ? _asInt(json['subtotal']) : qty * price,
     });
   }
 }
