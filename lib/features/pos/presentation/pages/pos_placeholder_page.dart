@@ -8,6 +8,7 @@ import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summ
 import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
+import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
 import 'package:profesionalservis_mobile/features/settings/presentation/pages/settings_page.dart';
 import 'package:profesionalservis_mobile/features/services/presentation/pages/service_list_screen.dart';
@@ -121,11 +122,18 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
   }
 }
 
-class _PosContent extends ConsumerWidget {
+class _PosContent extends ConsumerStatefulWidget {
   const _PosContent({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PosContent> createState() => _PosContentState();
+}
+
+class _PosContentState extends ConsumerState<_PosContent> {
+  int _mobileSectionIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(posProvider);
     final notifier = ref.read(posProvider.notifier);
 
@@ -166,16 +174,17 @@ class _PosContent extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final useVerticalLayout = constraints.maxWidth < 980;
+                final isWide = constraints.maxWidth >= 980;
 
-                if (useVerticalLayout) {
-                  return Column(
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         flex: 3,
                         child: _ProductPanel(state: state, notifier: notifier),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         flex: 2,
                         child: _CartPanel(state: state, notifier: notifier),
@@ -184,17 +193,28 @@ class _PosContent extends ConsumerWidget {
                   );
                 }
 
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                return Column(
                   children: [
-                    Expanded(
-                      flex: 3,
-                      child: _ProductPanel(state: state, notifier: notifier),
+                    SegmentedButton<int>(
+                      showSelectedIcon: false,
+                      segments: const [
+                        ButtonSegment<int>(value: 0, label: Text('Produk')),
+                        ButtonSegment<int>(value: 1, label: Text('Cart')),
+                      ],
+                      selected: {_mobileSectionIndex},
+                      onSelectionChanged: (selection) {
+                        setState(() => _mobileSectionIndex = selection.first);
+                      },
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(height: 12),
                     Expanded(
-                      flex: 2,
-                      child: _CartPanel(state: state, notifier: notifier),
+                      child: IndexedStack(
+                        index: _mobileSectionIndex,
+                        children: [
+                          _ProductPanel(state: state, notifier: notifier),
+                          _CartPanel(state: state, notifier: notifier),
+                        ],
+                      ),
                     ),
                   ],
                 );
@@ -250,43 +270,17 @@ class _ProductPanel extends StatelessWidget {
           Expanded(
             child: GridView.builder(
               itemCount: state.filteredProducts.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 260,
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
-                childAspectRatio: 1.32,
+                childAspectRatio: 0.98,
               ),
               itemBuilder: (context, index) {
                 final product = state.filteredProducts[index];
-                return InkWell(
-                  borderRadius: BorderRadius.circular(14),
+                return _ProductGridItem(
+                  product: product,
                   onTap: () => notifier.addToCart(product),
-                  child: Ink(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const Spacer(),
-                        Text(_money(product.price), style: const TextStyle(fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 2),
-                        Text(
-                          product.category.isEmpty ? 'Umum' : product.category,
-                          style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
                 );
               },
             ),
@@ -312,33 +306,84 @@ class _CartPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE4E7EC)),
       ),
-      child: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(child: _CartHeader(state: state, notifier: notifier)),
-          if (state.cartItems.isEmpty)
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              child: _EmptyStatePanel(
-                key: ValueKey('empty-cart'),
-                icon: Icons.remove_shopping_cart_rounded,
-                title: 'Keranjang masih kosong',
-                subtitle: 'Pilih produk terlebih dahulu untuk memulai transaksi.',
-              ),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final item = state.cartItems[index];
-                return Padding(
-                  padding: EdgeInsets.only(bottom: index == state.cartItems.length - 1 ? 0 : 8),
-                  child: _CartItemTile(item: item, notifier: notifier),
-                );
-              }, childCount: state.cartItems.length),
+      child: Column(
+        children: [
+          _CartHeader(state: state, notifier: notifier),
+          const SizedBox(height: 8),
+          Expanded(
+            child: state.cartItems.isEmpty
+                ? const _EmptyStatePanel(
+                    key: ValueKey('empty-cart'),
+                    icon: Icons.remove_shopping_cart_rounded,
+                    title: 'Keranjang masih kosong',
+                    subtitle: 'Pilih produk terlebih dahulu untuk memulai transaksi.',
+                  )
+                : ListView.separated(
+                    itemCount: state.cartItems.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = state.cartItems[index];
+                      return _CartItemTile(item: item, notifier: notifier);
+                    },
+                  ),
+          ),
+          const SizedBox(height: 8),
+          SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: _CartSummary(state: state, notifier: notifier),
             ),
-          SliverToBoxAdapter(
-            child: _CartFooter(state: state, notifier: notifier),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProductGridItem extends StatelessWidget {
+  const _ProductGridItem({required this.product, required this.onTap});
+
+  final ProductModel product;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Ink(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              product.category.isEmpty ? 'Umum' : product.category,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+            ),
+            const Spacer(),
+            Text(
+              _money(product.price),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -359,19 +404,24 @@ class _CartHeader extends StatelessWidget {
           const Expanded(
             child: Text('Cart', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
           ),
-          PopupMenuButton<String>(
-            onSelected: (holdId) => notifier.resumeCart(holdId),
-            itemBuilder: (context) => state.heldCarts.entries
-                .map(
-                  (entry) => PopupMenuItem(
-                    value: entry.key,
-                    child: Text('${entry.key} (${entry.value.length} item)'),
-                  ),
-                )
-                .toList(growable: false),
-            child: Chip(
-              label: Text('Hold (${state.heldCarts.length})'),
-              avatar: const Icon(Icons.pause_circle_outline_rounded, size: 18),
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: PopupMenuButton<String>(
+                onSelected: (holdId) => notifier.resumeCart(holdId),
+                itemBuilder: (context) => state.heldCarts.entries
+                    .map(
+                      (entry) => PopupMenuItem(
+                        value: entry.key,
+                        child: Text('${entry.key} (${entry.value.length} item)'),
+                      ),
+                    )
+                    .toList(growable: false),
+                child: Chip(
+                  label: Text('Hold (${state.heldCarts.length})'),
+                  avatar: const Icon(Icons.pause_circle_outline_rounded, size: 18),
+                ),
+              ),
             ),
           ),
         ],
@@ -400,7 +450,12 @@ class _CartItemTile extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(
+                  item.product.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
               IconButton(
                 onPressed: () => notifier.removeItem(item.product.id),
@@ -408,9 +463,14 @@ class _CartItemTile extends StatelessWidget {
               ),
             ],
           ),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 4,
+            runSpacing: 4,
             children: [
               IconButton(
+                constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                padding: EdgeInsets.zero,
                 onPressed: () => notifier.updateQuantity(
                   productId: item.product.id,
                   quantity: item.quantity - 1,
@@ -430,14 +490,25 @@ class _CartItemTile extends StatelessWidget {
                 child: Chip(label: Text('Qty ${item.quantity}')),
               ),
               IconButton(
+                constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                padding: EdgeInsets.zero,
                 onPressed: () => notifier.updateQuantity(
                   productId: item.product.id,
                   quantity: item.quantity + 1,
                 ),
                 icon: const Icon(Icons.add_circle_outline),
               ),
-              const Spacer(),
-              Text(_money(item.lineTotal), style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 90),
+                child: Text(
+                  _money(item.lineTotal),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
             ],
           ),
           TextButton.icon(
@@ -459,8 +530,8 @@ class _CartItemTile extends StatelessWidget {
   }
 }
 
-class _CartFooter extends StatelessWidget {
-  const _CartFooter({required this.state, required this.notifier});
+class _CartSummary extends StatelessWidget {
+  const _CartSummary({required this.state, required this.notifier});
 
   final PosState state;
   final PosNotifier notifier;
