@@ -315,9 +315,17 @@ class _CartPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: state.cartItems.isEmpty
-                ? const Center(child: Text('Keranjang kosong. Pilih produk di kiri.'))
-                : ListView.separated(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 260),
+              child: state.cartItems.isEmpty
+                  ? const _EmptyStatePanel(
+                      key: ValueKey('empty-cart'),
+                      icon: Icons.remove_shopping_cart_rounded,
+                      title: 'Keranjang masih kosong',
+                      subtitle: 'Pilih produk terlebih dahulu untuk memulai transaksi.',
+                    )
+                  : ListView.separated(
+                      key: const ValueKey('cart-items'),
                     itemBuilder: (context, index) {
                       final item = state.cartItems[index];
                       return Container(
@@ -392,6 +400,7 @@ class _CartPanel extends StatelessWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemCount: state.cartItems.length,
                   ),
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -545,6 +554,40 @@ Future<void> _showNumberEditor({
 
   if (value != null) {
     onSave(value);
+  }
+}
+
+
+class _EmptyStatePanel extends StatelessWidget {
+  const _EmptyStatePanel({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 42, color: const Color(0xFF98A2B3)),
+          const SizedBox(height: 10),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF667085)),
+          ),
+        ],
+      ),
+    );
   }
 }
 
