@@ -1,27 +1,36 @@
 class CreateServicePayload {
   const CreateServicePayload({
     required this.customerId,
-    required this.deviceName,
-    required this.deviceType,
+    required this.device,
+    required this.model,
     required this.complaint,
-    required this.estimatedCost,
-    required this.technicianId,
+    this.serialNumber,
+    this.accessories,
+    this.deposit = 0,
+    this.serviceFee = 0,
+    this.warrantyDays = 0,
   });
 
   final String customerId;
-  final String deviceName;
-  final String deviceType;
+  final String device;
+  final String model;
   final String complaint;
-  final int estimatedCost;
-  final String technicianId;
+  final String? serialNumber;
+  final String? accessories;
+  final int deposit;
+  final int serviceFee;
+  final int warrantyDays;
 
   Map<String, dynamic> toJson() => {
     'customer_id': customerId,
-    'device_name': deviceName,
-    'device_type': deviceType,
+    'device': device,
+    'model': model,
     'complaint': complaint,
-    'estimated_cost': estimatedCost,
-    'technician_id': technicianId,
+    if (serialNumber != null && serialNumber!.isNotEmpty) 'serial_number': serialNumber,
+    if (accessories != null && accessories!.isNotEmpty) 'accessories': accessories,
+    'deposit': deposit,
+    'service_fee': serviceFee,
+    'warranty_days': warrantyDays,
   };
 }
 

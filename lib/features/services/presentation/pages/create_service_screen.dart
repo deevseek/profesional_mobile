@@ -19,9 +19,12 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
   final _formKey = GlobalKey<FormState>();
   final _deviceNameController = TextEditingController();
   final _deviceTypeController = TextEditingController();
+  final _serialNumberController = TextEditingController();
+  final _accessoriesController = TextEditingController();
   final _complaintController = TextEditingController();
-  final _estimatedCostController = TextEditingController();
-  final _technicianController = TextEditingController();
+  final _estimatedCostController = TextEditingController(text: '0');
+  final _serviceFeeController = TextEditingController(text: '0');
+  final _warrantyDaysController = TextEditingController(text: '0');
 
   final _customerSearchController = TextEditingController();
   Timer? _debounce;
@@ -41,9 +44,12 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
     _debounce?.cancel();
     _deviceNameController.dispose();
     _deviceTypeController.dispose();
+    _serialNumberController.dispose();
+    _accessoriesController.dispose();
     _complaintController.dispose();
     _estimatedCostController.dispose();
-    _technicianController.dispose();
+    _serviceFeeController.dispose();
+    _warrantyDaysController.dispose();
     _customerSearchController
       ..removeListener(_onCustomerSearch)
       ..dispose();
@@ -131,6 +137,16 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
             ),
             const SizedBox(height: 10),
             TextFormField(
+              controller: _serialNumberController,
+              decoration: const InputDecoration(labelText: 'Serial Number (opsional)'),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _accessoriesController,
+              decoration: const InputDecoration(labelText: 'Aksesoris (opsional)'),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
               controller: _complaintController,
               decoration: const InputDecoration(labelText: 'Keluhan'),
               minLines: 2,
@@ -141,14 +157,22 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
             TextFormField(
               controller: _estimatedCostController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Estimasi biaya'),
+              decoration: const InputDecoration(labelText: 'Deposit'),
               validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
             ),
             const SizedBox(height: 10),
             TextFormField(
-              controller: _technicianController,
-              decoration: const InputDecoration(labelText: 'Technician ID'),
-              validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
+              controller: _serviceFeeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Biaya jasa'),
+              validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: _warrantyDaysController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Garansi (hari)'),
+              validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -161,11 +185,14 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
 
                       final payload = CreateServicePayload(
                         customerId: _selectedCustomer!.id,
-                        deviceName: _deviceNameController.text,
-                        deviceType: _deviceTypeController.text,
+                        device: _deviceNameController.text,
+                        model: _deviceTypeController.text,
+                        serialNumber: _serialNumberController.text,
+                        accessories: _accessoriesController.text,
                         complaint: _complaintController.text,
-                        estimatedCost: int.parse(_estimatedCostController.text),
-                        technicianId: _technicianController.text,
+                        deposit: int.parse(_estimatedCostController.text),
+                        serviceFee: int.parse(_serviceFeeController.text),
+                        warrantyDays: int.parse(_warrantyDaysController.text),
                       );
 
                       final created = await notifier.submit(payload);
