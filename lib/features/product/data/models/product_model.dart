@@ -18,16 +18,26 @@ class ProductModel with _$ProductModel {
   }) = _ProductModel;
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final rawCategory = json['category'];
+
     return _$ProductModelFromJson({
       ...json,
       'id': _asString(json['id']),
       'name': _asString(json['name']),
       'sku': _asString(json['sku']),
-      'category': _asString(json['category']),
+      'category': _parseCategory(rawCategory),
       'stock': _asInt(json['stock']),
       'price': _asInt(json['price']),
       'description': _asString(json['description']),
     });
+  }
+
+  static String _parseCategory(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return _asString(value['name']);
+    }
+
+    return _asString(value);
   }
 
   static String _asString(dynamic value) {
@@ -45,7 +55,8 @@ class ProductModel with _$ProductModel {
       return value.toInt();
     }
     if (value is String) {
-      return int.tryParse(value) ?? 0;
+      final normalized = value.trim();
+      return int.tryParse(normalized) ?? double.tryParse(normalized)?.toInt() ?? 0;
     }
     return 0;
   }
