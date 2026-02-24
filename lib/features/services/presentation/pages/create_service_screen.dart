@@ -1,12 +1,10 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:profesionalservis_mobile/features/customer/data/models/customer_model.dart';
-import 'package:profesionalservis_mobile/features/customer/data/repositories/customer_repository.dart';
 import 'package:profesionalservis_mobile/features/services/domain/service_payloads.dart';
 import 'package:profesionalservis_mobile/features/services/presentation/pages/service_detail_screen.dart';
+import 'package:profesionalservis_mobile/features/services/presentation/providers/service_form_provider.dart';
 import 'package:profesionalservis_mobile/features/services/presentation/providers/service_providers.dart';
+import 'package:profesionalservis_mobile/features/services/presentation/widgets/customer_dropdown_field.dart';
 
 class CreateServiceScreen extends ConsumerStatefulWidget {
   const CreateServiceScreen({super.key});
@@ -25,23 +23,89 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
   final _estimatedCostController = TextEditingController(text: '0');
   final _serviceFeeController = TextEditingController(text: '0');
   final _warrantyDaysController = TextEditingController(text: '0');
-
   final _customerSearchController = TextEditingController();
-  Timer? _debounce;
-  List<CustomerModel> _customers = const [];
-  CustomerModel? _selectedCustomer;
-  bool _loadingCustomer = false;
+
+  late final ProviderSubscription<AsyncValue<void>> _submitSubscription;
+  late final ProviderSubscription<ServiceFormState> _formSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomers();
-    _customerSearchController.addListener(_onCustomerSearch);
+    _registerControllerListeners();
+
+    _submitSubscription = ref.listenManual<AsyncValue<void>>(
+      createServiceProvider,
+      (previous, next) {
+        if (next.hasError && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Gagal menyimpan service')),
+            );
+          });
+        }
+      },
+    );
+
+    _formSubscription = ref.listenManual<ServiceFormState>(serviceFormProvider, (previous, next) {
+      _syncController(_customerSearchController, next.customerSearch);
+      _syncController(_deviceNameController, next.deviceName);
+      _syncController(_deviceTypeController, next.deviceType);
+      _syncController(_serialNumberController, next.serialNumber);
+      _syncController(_accessoriesController, next.accessories);
+      _syncController(_complaintController, next.complaint);
+      _syncController(_estimatedCostController, next.deposit);
+      _syncController(_serviceFeeController, next.serviceFee);
+      _syncController(_warrantyDaysController, next.warrantyDays);
+    });
+  }
+
+  void _registerControllerListeners() {
+    _customerSearchController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setCustomerSearch(_customerSearchController.text);
+    });
+    _deviceNameController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setDeviceName(_deviceNameController.text);
+    });
+    _deviceTypeController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setDeviceType(_deviceTypeController.text);
+    });
+    _serialNumberController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setSerialNumber(_serialNumberController.text);
+    });
+    _accessoriesController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setAccessories(_accessoriesController.text);
+    });
+    _complaintController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setComplaint(_complaintController.text);
+    });
+    _estimatedCostController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setDeposit(_estimatedCostController.text);
+    });
+    _serviceFeeController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setServiceFee(_serviceFeeController.text);
+    });
+    _warrantyDaysController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setWarrantyDays(_warrantyDaysController.text);
+    });
+  }
+
+  void _syncController(TextEditingController controller, String nextValue) {
+    if (controller.text == nextValue) {
+      return;
+    }
+
+    controller.value = controller.value.copyWith(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+      composing: TextRange.empty,
+    );
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    _submitSubscription.close();
+    _formSubscription.close();
     _deviceNameController.dispose();
     _deviceTypeController.dispose();
     _serialNumberController.dispose();
@@ -50,178 +114,157 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
     _estimatedCostController.dispose();
     _serviceFeeController.dispose();
     _warrantyDaysController.dispose();
-    _customerSearchController
-      ..removeListener(_onCustomerSearch)
-      ..dispose();
+    _customerSearchController.dispose();
     super.dispose();
-  }
-
-  void _onCustomerSearch() {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), _loadCustomers);
-  }
-
-  Future<void> _loadCustomers() async {
-    setState(() => _loadingCustomer = true);
-    try {
-      final repo = ref.read(customerRepositoryProvider);
-      final response = await repo.getCustomers(page: 1, search: _customerSearchController.text);
-      if (mounted) {
-        setState(() {
-          _customers = response.data;
-          _loadingCustomer = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _loadingCustomer = false);
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final formState = ref.watch(serviceFormProvider);
     final createState = ref.watch(createServiceProvider);
-    final notifier = ref.read(createServiceProvider.notifier);
     final isSubmitting = createState.isLoading;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(title: const Text('Tambah Service')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            TextField(
-              controller: _customerSearchController,
-              decoration: InputDecoration(
-                hintText: 'Cari customer...',
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _loadingCustomer
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox.square(
-                          dimension: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<CustomerModel>(
-              value: _selectedCustomer,
-              items: _customers
-                  .map(
-                    (c) => DropdownMenuItem(
-                      value: c,
-                      child: Text('${c.name} (${c.phone})'),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: isSubmitting ? null : (value) => setState(() => _selectedCustomer = value),
-              decoration: const InputDecoration(labelText: 'Customer'),
-              validator: (value) => value == null ? 'Pilih customer' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _deviceNameController,
-              decoration: const InputDecoration(labelText: 'Device name'),
-              validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _deviceTypeController,
-              decoration: const InputDecoration(labelText: 'Device type'),
-              validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _serialNumberController,
-              decoration: const InputDecoration(labelText: 'Serial Number (opsional)'),
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _accessoriesController,
-              decoration: const InputDecoration(labelText: 'Aksesoris (opsional)'),
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _complaintController,
-              decoration: const InputDecoration(labelText: 'Keluhan'),
-              minLines: 2,
-              maxLines: 3,
-              validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _estimatedCostController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Deposit'),
-              validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _serviceFeeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Biaya jasa'),
-              validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _warrantyDaysController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Garansi (hari)'),
-              validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: isSubmitting
-                  ? null
-                  : () async {
-                      if (!_formKey.currentState!.validate()) {
-                        return;
-                      }
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _customerSearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Cari customer...',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: formState.isLoadingCustomers
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox.square(
+                              dimension: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                CustomerDropdownField(
+                  customers: formState.customers,
+                  selectedCustomer: formState.selectedCustomer,
+                  enabled: !isSubmitting,
+                  onChanged: (value) {
+                    ref.read(serviceFormProvider.notifier).setCustomer(value);
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _deviceNameController,
+                  decoration: const InputDecoration(labelText: 'Device name'),
+                  validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _deviceTypeController,
+                  decoration: const InputDecoration(labelText: 'Device type'),
+                  validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _serialNumberController,
+                  decoration: const InputDecoration(labelText: 'Serial Number (opsional)'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _accessoriesController,
+                  decoration: const InputDecoration(labelText: 'Aksesoris (opsional)'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _complaintController,
+                  decoration: const InputDecoration(labelText: 'Keluhan'),
+                  minLines: 2,
+                  maxLines: 3,
+                  validator: (value) => (value == null || value.isEmpty) ? 'Wajib diisi' : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _estimatedCostController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Deposit'),
+                  validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _serviceFeeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Biaya jasa'),
+                  validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _warrantyDaysController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Garansi (hari)'),
+                  validator: (value) => (int.tryParse(value ?? '') == null) ? 'Angka tidak valid' : null,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (!_formKey.currentState!.validate()) {
+                            return;
+                          }
 
-                      final payload = CreateServicePayload(
-                        customerId: _selectedCustomer!.id,
-                        device: _deviceNameController.text,
-                        model: _deviceTypeController.text,
-                        serialNumber: _serialNumberController.text,
-                        accessories: _accessoriesController.text,
-                        complaint: _complaintController.text,
-                        deposit: int.parse(_estimatedCostController.text),
-                        serviceFee: int.parse(_serviceFeeController.text),
-                        warrantyDays: int.parse(_warrantyDaysController.text),
-                      );
+                          final selectedCustomer = formState.selectedCustomer;
+                          if (selectedCustomer == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Pilih customer terlebih dahulu')),
+                            );
+                            return;
+                          }
 
-                      final created = await notifier.submit(payload);
-                      if (!mounted) return;
+                          final payload = CreateServicePayload(
+                            customerId: selectedCustomer.id,
+                            device: _deviceNameController.text,
+                            model: _deviceTypeController.text,
+                            serialNumber: _serialNumberController.text,
+                            accessories: _accessoriesController.text,
+                            complaint: _complaintController.text,
+                            deposit: int.parse(_estimatedCostController.text),
+                            serviceFee: int.parse(_serviceFeeController.text),
+                            warrantyDays: int.parse(_warrantyDaysController.text),
+                          );
 
-                      if (created != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Service berhasil dibuat')),
-                        );
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (_) => ServiceDetailScreen(serviceId: created.id),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Gagal menyimpan service')),
-                        );
-                      }
-                    },
-              icon: isSubmitting
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save_rounded),
-              label: const Text('Simpan Service'),
+                          final created = await ref.read(createServiceProvider.notifier).submit(payload);
+                          if (!mounted || created == null) {
+                            return;
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Service berhasil dibuat')),
+                          );
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (_) => ServiceDetailScreen(serviceId: created.id),
+                            ),
+                          );
+                        },
+                  icon: isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.save_rounded),
+                  label: const Text('Simpan Service'),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
