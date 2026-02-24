@@ -26,6 +26,7 @@ class ProfesionalServisApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Profesional Servis',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.lightTheme,
       routerConfig: router,
       builder: (context, child) {
