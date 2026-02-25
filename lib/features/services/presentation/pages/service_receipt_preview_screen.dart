@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:profesionalservis_mobile/features/services/data/models/service_model.dart';
@@ -28,6 +29,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
   ReceiptFormat _selectedFormat = ReceiptFormat.standard;
 
   bool get isInvoiceMode => widget.transaction != null;
+  bool get isReceiptMode => !isInvoiceMode;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +66,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
                   FilledButton.icon(
                     onPressed: _printReceipt,
                     icon: const Icon(Icons.print),
-                    label: const Text('CETAK INVOICE'),
+                    label: Text(isInvoiceMode ? 'CETAK INVOICE' : 'CETAK TANDA TERIMA'),
                   ),
                 ],
               ),
@@ -103,6 +105,12 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
                           _line(dashed: true),
                           const SizedBox(height: 8),
                           _buildTotals(),
+                          if (isReceiptMode) ...[
+                            const SizedBox(height: 12),
+                            _line(dashed: true),
+                            const SizedBox(height: 10),
+                            _buildTrackingQr(),
+                          ],
                           const SizedBox(height: 16),
                           if (!isThermal) _buildSignature() else _buildThermalFooter(),
                         ],
@@ -184,6 +192,40 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
     final items = widget.transaction?.items ?? const <TransactionItemModel>[];
     final hasItems = items.isNotEmpty;
 
+    if (isReceiptMode) {
+      return Table(
+        columnWidths: const {
+          0: FlexColumnWidth(1.2),
+          1: FlexColumnWidth(5.9),
+        },
+        children: [
+          TableRow(
+            children: [
+              _cell('QTY', header: true),
+              _cell('DESKRIPSI', header: true),
+            ],
+          ),
+          ...(hasItems
+              ? items.map(
+                  (item) => TableRow(
+                    children: [
+                      _cell('${item.quantity}', center: true),
+                      _cell(item.name.isEmpty ? 'JASA SERVICE' : item.name.toUpperCase()),
+                    ],
+                  ),
+                )
+              : [
+                  TableRow(
+                    children: [
+                      _cell('1', center: true),
+                      _cell('JASA SERVICE\nUNIT: ${widget.service.deviceName.toUpperCase()}'),
+                    ],
+                  ),
+                ]),
+        ],
+      );
+    }
+
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(1.2),
@@ -222,6 +264,26 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
   }
 
   Widget _buildTotals() {
+    if (isReceiptMode) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isThermal)
+            Expanded(
+              child: Text(
+                'DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}',
+              ),
+            )
+          else
+            Expanded(
+              child: Text(
+                'DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}',
+              ),
+            ),
+        ],
+      );
+    }
+
     final subtotal = widget.transaction?.subtotal ?? widget.service.finalCost;
     final total = widget.transaction?.total ?? widget.service.finalCost;
 
@@ -241,6 +303,38 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
               _totalRow('SISA:', _money((total - widget.service.estimatedCost).clamp(0, total))),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrackingQr() {
+    final url = _progressTrackingUrl;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Text(
+          'CEK PROGRES PEKERJAAN ONLINE',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: QrImageView(
+            data: url,
+            version: QrVersions.auto,
+            size: isThermal ? 110 : 150,
+            backgroundColor: Colors.white,
+            eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
+            dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          url,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -359,6 +453,23 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
 
   String get _storeAddress => (widget.store['address'] ?? '').toString();
 
+  String get _progressTrackingUrl {
+    final directUrl = (widget.store['service_tracking_url'] ?? widget.store['tracking_url'] ?? '').toString().trim();
+    if (directUrl.isNotEmpty) {
+      return directUrl;
+    }
+
+    final baseUrl = (widget.store['service_tracking_base_url'] ?? widget.store['tracking_base_url'] ?? '').toString().trim();
+    if (baseUrl.isNotEmpty) {
+      final number = Uri.encodeComponent(widget.service.serviceNumber);
+      return '$baseUrl/$number';
+    }
+
+    final serviceToken = widget.service.serviceNumber.isNotEmpty ? widget.service.serviceNumber : widget.service.id;
+    final encoded = Uri.encodeComponent(serviceToken);
+    return 'https://service.profesionalservis.com/track/$encoded';
+  }
+
   String _dateFormat(DateTime? date) => DateFormat('dd/MM/yyyy HH:mm').format(date ?? DateTime.now());
 
   String _money(int amount) {
@@ -388,7 +499,8 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
           pw.Text('Service: ${widget.service.serviceNumber}'),
           pw.Text('Customer: ${widget.service.customerName}'),
           pw.Text('Device: ${widget.service.deviceName}'),
-          pw.Text('Total: ${_money(widget.transaction?.total ?? widget.service.finalCost)}'),
+          if (isInvoiceMode) pw.Text('Total: ${_money(widget.transaction?.total ?? widget.service.finalCost)}'),
+          if (isReceiptMode) pw.Text('Tracking: $_progressTrackingUrl'),
           pw.SizedBox(height: 10),
           pw.Text('Dicetak: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}'),
         ],
