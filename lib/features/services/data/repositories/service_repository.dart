@@ -140,6 +140,7 @@ class ServiceRepository {
   }) async {
     final payload = {'status': status};
     final endpoints = <String>[
+      '/services/$id/update-status',
       '/services/$id/workflow-status',
       '/services/$id/status',
     ];

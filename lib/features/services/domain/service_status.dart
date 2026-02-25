@@ -38,13 +38,13 @@ extension ServiceStatusX on ServiceStatus {
       case ServiceStatus.menunggu:
         return 'menunggu';
       case ServiceStatus.dikerjakan:
-        return 'in_progress';
+        return 'dikerjakan';
       case ServiceStatus.selesai:
-        return 'done';
+        return 'selesai';
       case ServiceStatus.diambil:
-        return 'picked_up';
+        return 'diambil';
       case ServiceStatus.batal:
-        return 'canceled';
+        return 'batal';
     }
   }
 
