@@ -232,48 +232,89 @@ class ServiceRepository {
 
   Future<ServiceModel> addServiceItem(String serviceId, AddServiceItemPayload payload) async {
     final endpoints = <String>[
+      '/services/$serviceId/add-item',
       '/services/$serviceId/items',
       '/services/$serviceId/spareparts',
     ];
 
     final payloadVariants = <Map<String, dynamic>>[
-      payload.toJson(),
       {
         'product_id': payload.productId,
         'quantity': payload.qty,
+      },
+      payload.toJson(),
+      {
+        'product_id': payload.productId,
+        'qty': payload.qty,
         'price': payload.price,
       },
     ];
 
-    DioException? lastRetriableError;
+    DioException? lastRouteError;
 
     for (final endpoint in endpoints) {
+      DioException? endpointValidationError;
+
       for (final data in payloadVariants) {
         try {
           final response = await _dio.post<Map<String, dynamic>>(endpoint, data: data);
           return _unwrapServiceData(response.data);
         } on DioException catch (error) {
           final statusCode = error.response?.statusCode;
-          final isRetriable = statusCode == 404 || statusCode == 405 || statusCode == 422;
-          if (isRetriable) {
-            lastRetriableError = error;
+
+          if (statusCode == 422) {
+            endpointValidationError = error;
             continue;
           }
+
+          if (statusCode == 404 || statusCode == 405) {
+            lastRouteError = error;
+            break;
+          }
+
           rethrow;
         }
       }
+
+      if (endpointValidationError != null) {
+        throw endpointValidationError;
+      }
     }
 
-    if (lastRetriableError != null) {
-      throw lastRetriableError;
+    if (lastRouteError != null) {
+      throw lastRouteError;
     }
 
     throw const FormatException('Endpoint tambah item service tidak ditemukan.');
   }
 
   Future<ServiceModel> deleteServiceItem(String serviceId, String itemId) async {
-    final response = await _dio.delete<Map<String, dynamic>>('/services/$serviceId/items/$itemId');
-    return _unwrapServiceData(response.data);
+    final endpoints = <String>[
+      '/services/$serviceId/items/$itemId',
+      '/services/$serviceId/delete-item/$itemId',
+    ];
+
+    DioException? lastNotFound;
+
+    for (final endpoint in endpoints) {
+      try {
+        final response = await _dio.delete<Map<String, dynamic>>(endpoint);
+        return _unwrapServiceData(response.data);
+      } on DioException catch (error) {
+        final statusCode = error.response?.statusCode;
+        if (statusCode == 404 || statusCode == 405) {
+          lastNotFound = error;
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    if (lastNotFound != null) {
+      throw lastNotFound;
+    }
+
+    throw const FormatException('Endpoint hapus item service tidak ditemukan.');
   }
 
   ServiceModel _unwrapServiceData(Map<String, dynamic>? body) {
