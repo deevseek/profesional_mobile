@@ -1,6 +1,10 @@
 class CreateServicePayload {
   const CreateServicePayload({
-    required this.customerId,
+    this.customerId,
+    this.customerName,
+    this.customerPhone,
+    this.customerEmail,
+    this.customerAddress,
     required this.device,
     required this.model,
     required this.complaint,
@@ -11,7 +15,11 @@ class CreateServicePayload {
     this.warrantyDays = 0,
   });
 
-  final String customerId;
+  final String? customerId;
+  final String? customerName;
+  final String? customerPhone;
+  final String? customerEmail;
+  final String? customerAddress;
   final String device;
   final String model;
   final String complaint;
@@ -22,7 +30,11 @@ class CreateServicePayload {
   final int warrantyDays;
 
   Map<String, dynamic> toJson() => {
-    'customer_id': customerId,
+    if (customerId != null && customerId!.isNotEmpty) 'customer_id': customerId,
+    if (customerName != null && customerName!.isNotEmpty) 'customer_name': customerName,
+    if (customerPhone != null && customerPhone!.isNotEmpty) 'customer_phone': customerPhone,
+    if (customerEmail != null && customerEmail!.isNotEmpty) 'customer_email': customerEmail,
+    if (customerAddress != null && customerAddress!.isNotEmpty) 'customer_address': customerAddress,
     'device': device,
     'model': model,
     'complaint': complaint,
