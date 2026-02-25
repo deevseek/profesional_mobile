@@ -162,6 +162,19 @@ class ServiceDetailNotifier extends FamilyAsyncNotifier<ServiceModel, String> {
     return true;
   }
 
+  Future<bool> updateServiceStatus(String status) async {
+    final updated = await AsyncValue.guard(
+      () => _repository.updateServiceStatus(id: arg, status: status),
+    );
+    if (updated.hasError) {
+      state = AsyncError(updated.error!, updated.stackTrace!);
+      return false;
+    }
+
+    state = AsyncData(updated.requireValue);
+    return true;
+  }
+
   Future<bool> addItem(AddServiceItemPayload payload) async {
     final result = await AsyncValue.guard(() => _repository.addServiceItem(arg, payload));
     if (result.hasError) {
