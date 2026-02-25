@@ -28,25 +28,23 @@ class TransactionRepository {
 
   Future<TransactionResult> createTransaction({
     required List<PosCartItem> items,
-    required int taxPercent,
     required int paidAmount,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/transactions',
       data: {
+        'payment_method': 'cash',
         'items': items
             .map(
               (item) => {
                 'product_id': item.product.id,
-                'name': item.product.name,
                 'price': item.product.price,
                 'quantity': item.quantity,
                 'discount': item.discount,
-                'line_total': item.lineTotal,
+                'total': item.lineTotal,
               },
             )
             .toList(growable: false),
-        'tax_percent': taxPercent,
         'paid_amount': paidAmount,
       },
     );
@@ -57,10 +55,10 @@ class TransactionRepository {
     }
 
     return TransactionResult(
-      invoice: _asString(data['invoice']),
+      invoice: _asString(data['invoice'] ?? data['invoice_number']),
       subtotal: _asInt(data['subtotal']),
       total: _asInt(data['total']),
-      change: _asInt(data['change']),
+      change: _asInt(data['change'] ?? data['change_amount']),
     );
   }
 
