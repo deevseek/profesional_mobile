@@ -133,4 +133,17 @@ class ServiceRepository {
     }
     return ServiceModel.fromJson(data);
   }
+
+  Map<String, dynamic> _unwrapNestedData(Map<String, dynamic>? body) {
+    if (body == null) {
+      throw const FormatException('Response tidak valid.');
+    }
+
+    final data = body['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    return body;
+  }
 }
