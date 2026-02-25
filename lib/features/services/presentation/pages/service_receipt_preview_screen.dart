@@ -478,6 +478,8 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
   }
 
   Future<void> _printReceipt() async {
+    final regularFont = await PdfGoogleFonts.notoSansRegular();
+    final boldFont = await PdfGoogleFonts.notoSansBold();
     final doc = pw.Document();
     final format = switch (_selectedFormat) {
       ReceiptFormat.standard => PdfPageFormat.a4,
@@ -489,6 +491,10 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
       pw.MultiPage(
         pageFormat: format,
         margin: const pw.EdgeInsets.all(12),
+        theme: pw.ThemeData.withFont(
+          base: regularFont,
+          bold: boldFont,
+        ),
         build: (context) => [
           pw.Text(
             (_storeName.isEmpty ? 'Profesional Servis' : _storeName).toUpperCase(),
