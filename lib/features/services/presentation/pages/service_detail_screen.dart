@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/services/data/models/service_item_model.dart';
@@ -142,6 +143,8 @@ class _DetailContent extends ConsumerWidget {
 
         const SizedBox(height: 12),
         _TrackingSection(serviceId: serviceId),
+        const SizedBox(height: 12),
+        _WhatsAppNotificationSection(serviceId: serviceId),
       ],
     );
   }
@@ -613,5 +616,142 @@ class _TrackingSection extends ConsumerWidget {
         },
       ),
     );
+  }
+}
+
+class _WhatsAppNotificationSection extends ConsumerStatefulWidget {
+  const _WhatsAppNotificationSection({required this.serviceId});
+
+  final String serviceId;
+
+  @override
+  ConsumerState<_WhatsAppNotificationSection> createState() => _WhatsAppNotificationSectionState();
+}
+
+class _WhatsAppNotificationSectionState extends ConsumerState<_WhatsAppNotificationSection> {
+  String _selectedTemplate = 'created';
+  final TextEditingController _messageController = TextEditingController();
+  bool _isSending = false;
+
+  static const Map<String, String> _templates = {
+    'created': 'Service Dibuat',
+    'diagnosis': 'Diagnosis',
+    'in_progress': 'Sedang Dikerjakan',
+    'done': 'Selesai',
+    'picked_up': 'Sudah Diambil',
+    'canceled': 'Dibatalkan',
+  };
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Notifikasi WhatsApp',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DropdownButtonFormField<String>(
+            value: _selectedTemplate,
+            isExpanded: true,
+            items: _templates.entries
+                .map((entry) => DropdownMenuItem(value: entry.key, child: Text(entry.value)))
+                .toList(growable: false),
+            onChanged: _isSending
+                ? null
+                : (value) {
+                    if (value == null) return;
+                    setState(() => _selectedTemplate = value);
+                  },
+            decoration: const InputDecoration(labelText: 'Template Notifikasi'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _messageController,
+            enabled: !_isSending,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Pesan Kustom (Opsional)',
+              hintText: 'Kosongkan untuk memakai template dari server',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: _isSending ? null : _sendNotification,
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text(_isSending ? 'Mengirim...' : 'Buat Link WhatsApp'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendNotification() async {
+    setState(() => _isSending = true);
+    try {
+      final notifier = ref.read(serviceDetailProvider(widget.serviceId).notifier);
+      final response = await notifier.notifyWhatsApp(
+        template: _selectedTemplate,
+        message: _messageController.text,
+      );
+
+      if (!mounted) return;
+
+      if (response == null || (response.link.isEmpty && response.webLink.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membuat link notifikasi WhatsApp.')),
+        );
+        return;
+      }
+
+      final primaryLink = response.link.isNotEmpty ? response.link : response.webLink;
+      await Clipboard.setData(ClipboardData(text: primaryLink));
+
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Link Notifikasi Dibuat'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Penerima: ${response.recipientPhone.isEmpty ? '-' : response.recipientPhone}'),
+              const SizedBox(height: 8),
+              SelectableText(primaryLink),
+              const SizedBox(height: 8),
+              const Text(
+                'Link sudah disalin ke clipboard. Tempel di browser atau aplikasi WhatsApp.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Tutup'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
   }
 }

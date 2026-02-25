@@ -35,6 +35,24 @@ class ServiceInvoiceResponse {
   final Map<String, dynamic> store;
 }
 
+class ServiceWhatsAppNotificationResponse {
+  const ServiceWhatsAppNotificationResponse({
+    required this.serviceId,
+    required this.template,
+    required this.recipientPhone,
+    required this.message,
+    required this.link,
+    required this.webLink,
+  });
+
+  final String serviceId;
+  final String template;
+  final String recipientPhone;
+  final String message;
+  final String link;
+  final String webLink;
+}
+
 class ServiceRepository {
   const ServiceRepository(this._dio);
 
@@ -116,6 +134,44 @@ class ServiceRepository {
     return _unwrapServiceData(response.data);
   }
 
+  Future<ServiceWhatsAppNotificationResponse> notifyWhatsApp({
+    required String id,
+    String? template,
+    String? message,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/services/$id/notify-whatsapp',
+      data: {
+        if (template != null && template.isNotEmpty) 'template': template,
+        if (message != null && message.trim().isNotEmpty) 'message': message.trim(),
+      },
+    );
+
+    final body = response.data;
+    if (body == null) {
+      throw const FormatException('Response notifikasi WhatsApp tidak valid.');
+    }
+
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) {
+      throw const FormatException('Format response notifikasi WhatsApp tidak valid.');
+    }
+
+    final notification = data['notification'];
+    if (notification is! Map<String, dynamic>) {
+      throw const FormatException('Data notification WhatsApp tidak ditemukan.');
+    }
+
+    return ServiceWhatsAppNotificationResponse(
+      serviceId: _asString(data['service_id']),
+      template: _asString(data['template']),
+      recipientPhone: _asString(data['recipient_phone']),
+      message: _asString(notification['message']),
+      link: _asString(notification['link']),
+      webLink: _asString(notification['web_link']),
+    );
+  }
+
   Future<ServiceTrackingModel> getServiceTracking(String id) async {
     final response = await _dio.get<Map<String, dynamic>>('/services/$id/tracking');
     final data = _unwrapNestedData(response.data);
@@ -185,3 +241,5 @@ class ServiceRepository {
     return const ServiceTrackingModel();
   }
 }
+
+String _asString(dynamic value) => value?.toString() ?? '';
