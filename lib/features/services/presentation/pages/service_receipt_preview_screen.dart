@@ -485,24 +485,24 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
     final hasItems = items.isNotEmpty;
 
     final baseTextStyle = pw.TextStyle(
-      fontSize: _selectedFormat == ReceiptFormat.thermal58 ? 9 : 10,
+      fontSize: _selectedFormat == ReceiptFormat.thermal58 ? 8.5 : 10,
       fontWeight: pw.FontWeight.bold,
       lineSpacing: 1.2,
     );
-    final titleStyle = pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold);
+    final titleStyle = pw.TextStyle(fontSize: isThermal ? 12 : 15, fontWeight: pw.FontWeight.bold);
 
     pw.Widget pdfLine({bool dashed = false, bool doubleLine = false}) {
       if (dashed) {
-        return pw.Row(
-          children: List.generate(
-            24,
-            (_) => pw.Expanded(
-              child: pw.Container(
-                height: 1.2,
-                margin: const pw.EdgeInsets.symmetric(horizontal: 1.2),
-                color: PdfColors.black,
-              ),
-            ),
+        final dashCount = switch (_selectedFormat) {
+          ReceiptFormat.standard => 72,
+          ReceiptFormat.thermal80 => 44,
+          ReceiptFormat.thermal58 => 30,
+        };
+        return pw.Center(
+          child: pw.Text(
+            '-' * dashCount,
+            textAlign: pw.TextAlign.center,
+            style: const pw.TextStyle(letterSpacing: 0.3),
           ),
         );
       }
@@ -566,40 +566,55 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
           : widget.service.serviceNumber;
 
       if (isThermal) {
-        return pw.Column(
+        return pw.Table(
+          columnWidths: const {0: pw.FlexColumnWidth(1)},
           children: [
-            pw.Text(_storeName.toUpperCase(), textAlign: pw.TextAlign.center, style: titleStyle),
-            if (_storeAddress.isNotEmpty) pw.Text(_storeAddress, textAlign: pw.TextAlign.center),
-            pw.SizedBox(height: 6),
-            pw.Text('$title #$invoiceNumber', textAlign: pw.TextAlign.center),
-            pw.Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}', textAlign: pw.TextAlign.center),
-            pw.Text('CUST: ${widget.service.customerName.toUpperCase()}', textAlign: pw.TextAlign.center),
-            pw.Text('METODE: $paymentMethod', textAlign: pw.TextAlign.center),
+            pw.TableRow(children: [pw.Center(child: pw.Text(_storeName.toUpperCase(), textAlign: pw.TextAlign.center, style: titleStyle))]),
+            if (_storeAddress.isNotEmpty)
+              pw.TableRow(children: [pw.Center(child: pw.Text(_storeAddress, textAlign: pw.TextAlign.center))]),
+            pw.TableRow(children: [pw.SizedBox(height: 6)]),
+            pw.TableRow(children: [pw.Center(child: pw.Text('$title #$invoiceNumber', textAlign: pw.TextAlign.center))]),
+            pw.TableRow(
+              children: [
+                pw.Center(
+                  child: pw.Text(
+                    'TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}',
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+            pw.TableRow(children: [pw.Center(child: pw.Text('CUST: ${widget.service.customerName.toUpperCase()}', textAlign: pw.TextAlign.center))]),
+            pw.TableRow(children: [pw.Center(child: pw.Text('METODE: $paymentMethod', textAlign: pw.TextAlign.center))]),
           ],
         );
       }
 
-      return pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+      return pw.Table(
+        columnWidths: const {
+          0: pw.FlexColumnWidth(3),
+          1: pw.FlexColumnWidth(2),
+        },
         children: [
-          pw.Expanded(
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(_storeName.toUpperCase(), style: titleStyle),
-                if (_storeAddress.isNotEmpty) pw.Text(_storeAddress),
-                pw.Text('METODE: $paymentMethod'),
-              ],
-            ),
-          ),
-          pw.SizedBox(width: 12),
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.end,
+          pw.TableRow(
             children: [
-              pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-              pw.Text('NO: $invoiceNumber'),
-              pw.Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}'),
-              pw.Text('CUST: ${widget.service.customerName.toUpperCase()}'),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(_storeName.toUpperCase(), style: titleStyle),
+                  if (_storeAddress.isNotEmpty) pw.Text(_storeAddress),
+                  pw.Text('METODE: $paymentMethod'),
+                ],
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('NO: $invoiceNumber'),
+                  pw.Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}'),
+                  pw.Text('CUST: ${widget.service.customerName.toUpperCase()}'),
+                ],
+              ),
             ],
           ),
         ],
@@ -609,9 +624,9 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
     pw.Widget buildItemsTable() {
       if (isReceiptMode) {
         return pw.Table(
-          columnWidths: const {
-            0: pw.FlexColumnWidth(1.2),
-            1: pw.FlexColumnWidth(5.9),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(1.2),
+            1: pw.FlexColumnWidth(isThermal ? 4.8 : 5.9),
           },
           children: [
             pw.TableRow(children: [cell('QTY', header: true), cell('DESKRIPSI', header: true)]),
@@ -637,10 +652,10 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
       }
 
       return pw.Table(
-        columnWidths: const {
-          0: pw.FlexColumnWidth(1.2),
-          1: pw.FlexColumnWidth(3.7),
-          2: pw.FlexColumnWidth(2.2),
+        columnWidths: {
+          0: const pw.FlexColumnWidth(1.2),
+          1: pw.FlexColumnWidth(isThermal ? 3.3 : 3.7),
+          2: pw.FlexColumnWidth(isThermal ? 2.5 : 2.2),
         },
         children: [
           pw.TableRow(
@@ -675,13 +690,13 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
 
     pw.Widget buildTotals() {
       if (isReceiptMode) {
-        return pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
+        return pw.Table(
+          columnWidths: const {0: pw.FlexColumnWidth(1)},
           children: [
-            pw.Expanded(
-              child: pw.Text(
-                'DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}',
-              ),
+            pw.TableRow(
+              children: [
+                pw.Text('DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}'),
+              ],
             ),
           ],
         );
@@ -690,24 +705,30 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
       final subtotal = widget.transaction?.subtotal ?? widget.service.finalCost;
       final total = widget.transaction?.total ?? widget.service.finalCost;
 
-      return pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+      return pw.Table(
+        columnWidths: {
+          0: pw.FlexColumnWidth(isThermal ? 0 : 3),
+          1: const pw.FlexColumnWidth(2),
+        },
         children: [
-          if (!isThermal)
-            pw.Expanded(
-              child: pw.Text(
-                'DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}',
+          pw.TableRow(
+            children: [
+              if (!isThermal)
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(right: 8),
+                  child: pw.Text('DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}'),
+                )
+              else
+                pw.SizedBox.shrink(),
+              pw.Table(
+                children: [
+                  totalRow('SUBTOTAL:', _money(subtotal)),
+                  totalRow('TOTAL:', _money(total), emphasize: true),
+                  totalRow('DEPOSIT:', _money(widget.service.estimatedCost)),
+                  totalRow('SISA:', _money((total - widget.service.estimatedCost).clamp(0, total))),
+                ],
               ),
-            ),
-          pw.Expanded(
-            child: pw.Table(
-              children: [
-                totalRow('SUBTOTAL:', _money(subtotal)),
-                totalRow('TOTAL:', _money(total), emphasize: true),
-                totalRow('DEPOSIT:', _money(widget.service.estimatedCost)),
-                totalRow('SISA:', _money((total - widget.service.estimatedCost).clamp(0, total))),
-              ],
-            ),
+            ],
           ),
         ],
       );
@@ -718,25 +739,29 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          pw.Text(
-            'CEK PROGRES PEKERJAAN ONLINE',
-            textAlign: pw.TextAlign.center,
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          pw.Center(
+            child: pw.Text(
+              'CEK PROGRES PEKERJAAN ONLINE',
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
           ),
           pw.SizedBox(height: 8),
           pw.Center(
             child: pw.BarcodeWidget(
               barcode: pw.Barcode.qrCode(),
               data: url,
-              width: isThermal ? 110 : 150,
-              height: isThermal ? 110 : 150,
+              width: isThermal ? 80 : 120,
+              height: isThermal ? 80 : 120,
             ),
           ),
           pw.SizedBox(height: 8),
-          pw.Text(
-            url,
-            textAlign: pw.TextAlign.center,
-            style: const pw.TextStyle(fontSize: 10),
+          pw.Center(
+            child: pw.Text(
+              url,
+              textAlign: pw.TextAlign.center,
+              style: const pw.TextStyle(fontSize: 10),
+            ),
           ),
         ],
       );
@@ -763,21 +788,25 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
     }
 
     pw.Widget buildThermalFooter() {
-      return pw.Column(
-        children: [
-          pdfLine(dashed: true),
-          pw.SizedBox(height: 8),
-          pw.Text('TERIMA KASIH ATAS KEPERCAYAAN ANDA', textAlign: pw.TextAlign.center),
-          pw.Text('* KLAIM GARANSI WAJIB SERTAKAN NOTA INI *', textAlign: pw.TextAlign.center),
-          pw.Text('DICETAK: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}', textAlign: pw.TextAlign.center),
-        ],
+      return pw.Center(
+        child: pw.Column(
+          children: [
+            pdfLine(dashed: true),
+            pw.SizedBox(height: 8),
+            pw.Text('TERIMA KASIH ATAS KEPERCAYAAN ANDA', textAlign: pw.TextAlign.center),
+            pw.Text('* KLAIM GARANSI WAJIB SERTAKAN NOTA INI *', textAlign: pw.TextAlign.center),
+            pw.Text('DICETAK: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}', textAlign: pw.TextAlign.center),
+          ],
+        ),
       );
     }
 
     final content = pw.Container(
       width: double.infinity,
-      padding: pw.EdgeInsets.symmetric(horizontal: isThermal ? 14 : 22, vertical: 18),
-      decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.black, width: 1.5)),
+      padding: pw.EdgeInsets.symmetric(horizontal: isThermal ? 8 : 22, vertical: 18),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.black, width: isThermal ? 0.6 : 1.5),
+      ),
       child: pw.DefaultTextStyle(
         style: baseTextStyle,
         child: pw.Column(
@@ -807,8 +836,8 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
 
     final format = switch (_selectedFormat) {
       ReceiptFormat.standard => PdfPageFormat.a4,
-      ReceiptFormat.thermal80 => PdfPageFormat(80 * PdfPageFormat.mm, (170 + (hasItems ? items.length * 10 : 18)) * PdfPageFormat.mm),
-      ReceiptFormat.thermal58 => PdfPageFormat(58 * PdfPageFormat.mm, (170 + (hasItems ? items.length * 10 : 18)) * PdfPageFormat.mm),
+      ReceiptFormat.thermal80 => PdfPageFormat(80 * PdfPageFormat.mm, double.infinity),
+      ReceiptFormat.thermal58 => PdfPageFormat(58 * PdfPageFormat.mm, double.infinity),
     };
 
     if (isThermal) {
@@ -833,4 +862,5 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
 
     await Printing.layoutPdf(onLayout: (_) async => doc.save());
   }
+
 }
