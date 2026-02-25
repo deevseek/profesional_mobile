@@ -58,13 +58,16 @@ class TransactionItemModel {
     final qty = _asInt(json['quantity'] ?? json['qty']);
     final price = _asInt(json['price']);
     final discount = _asInt(json['discount']);
+    final product = json['product'] is Map<String, dynamic>
+        ? json['product'] as Map<String, dynamic>
+        : const <String, dynamic>{};
 
     return TransactionItemModel(
-      name: _asString(json['name'] ?? json['product_name']),
+      name: _asString(json['name'] ?? json['product_name'] ?? product['name']),
       quantity: qty,
       price: price,
       discount: discount,
-      lineTotal: _asInt(json['line_total'] ?? (qty * price) - discount),
+      lineTotal: _asInt(json['line_total'] ?? json['total'] ?? (qty * price) - discount),
     );
   }
 }

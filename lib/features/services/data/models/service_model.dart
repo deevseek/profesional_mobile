@@ -36,7 +36,9 @@ class ServiceModel with _$ServiceModel {
     return _$ServiceModelFromJson({
       ...json,
       'id': _asString(json['id']),
-      'service_number': _buildServiceNumber(json['id']),
+      'service_number': _asString(json['service_number']).isNotEmpty
+          ? _asString(json['service_number'])
+          : _buildServiceNumber(json['id']),
       'customer_id': _asString(json['customer_id']),
       'customer_name': _asString(json['customer_name']).isNotEmpty
           ? _asString(json['customer_name'])
@@ -50,6 +52,8 @@ class ServiceModel with _$ServiceModel {
       'technician_name': _asString(json['technician_name']),
       'estimated_cost': _asInt(json['deposit']),
       'final_cost': _asInt(json['service_fee']),
+      'created_at': json['created_at'] ?? json['received_at'],
+      'updated_at': json['updated_at'],
       'items': rawItems is List ? rawItems : <Map<String, dynamic>>[],
     });
   }

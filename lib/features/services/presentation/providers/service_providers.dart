@@ -138,6 +138,15 @@ class ServiceDetailNotifier extends FamilyAsyncNotifier<ServiceModel, String> {
     state = await AsyncValue.guard(() => _repository.getServiceDetail(arg));
   }
 
+
+  Future<ServiceReceiptResponse> getReceipt() {
+    return _repository.getServiceReceipt(arg);
+  }
+
+  Future<ServiceInvoiceResponse> getInvoice() {
+    return _repository.getServiceInvoice(arg);
+  }
+
   Future<bool> updateService(Map<String, dynamic> payload) async {
     final current = state.valueOrNull;
     if (current == null) return false;

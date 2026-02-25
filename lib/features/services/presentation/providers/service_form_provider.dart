@@ -9,6 +9,10 @@ class ServiceFormState {
     this.selectedCustomer,
     this.customers = const [],
     this.customerSearch = '',
+    this.customerName = '',
+    this.customerPhone = '',
+    this.customerEmail = '',
+    this.customerAddress = '',
     this.deviceName = '',
     this.deviceType = '',
     this.serialNumber = '',
@@ -23,6 +27,10 @@ class ServiceFormState {
   final CustomerModel? selectedCustomer;
   final List<CustomerModel> customers;
   final String customerSearch;
+  final String customerName;
+  final String customerPhone;
+  final String customerEmail;
+  final String customerAddress;
   final String deviceName;
   final String deviceType;
   final String serialNumber;
@@ -38,6 +46,10 @@ class ServiceFormState {
     bool clearSelectedCustomer = false,
     List<CustomerModel>? customers,
     String? customerSearch,
+    String? customerName,
+    String? customerPhone,
+    String? customerEmail,
+    String? customerAddress,
     String? deviceName,
     String? deviceType,
     String? serialNumber,
@@ -52,6 +64,10 @@ class ServiceFormState {
       selectedCustomer: clearSelectedCustomer ? null : (selectedCustomer ?? this.selectedCustomer),
       customers: customers ?? this.customers,
       customerSearch: customerSearch ?? this.customerSearch,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      customerEmail: customerEmail ?? this.customerEmail,
+      customerAddress: customerAddress ?? this.customerAddress,
       deviceName: deviceName ?? this.deviceName,
       deviceType: deviceType ?? this.deviceType,
       serialNumber: serialNumber ?? this.serialNumber,
@@ -102,8 +118,19 @@ class ServiceFormNotifier extends Notifier<ServiceFormState> {
   }
 
   void setCustomer(CustomerModel? customer) {
-    state = state.copyWith(selectedCustomer: customer);
+    state = state.copyWith(
+      selectedCustomer: customer,
+      customerName: customer?.name ?? state.customerName,
+      customerPhone: customer?.phone ?? state.customerPhone,
+      customerEmail: customer?.email ?? state.customerEmail,
+      customerAddress: customer?.address ?? state.customerAddress,
+    );
   }
+
+  void setCustomerName(String value) => state = state.copyWith(customerName: value);
+  void setCustomerPhone(String value) => state = state.copyWith(customerPhone: value);
+  void setCustomerEmail(String value) => state = state.copyWith(customerEmail: value);
+  void setCustomerAddress(String value) => state = state.copyWith(customerAddress: value);
 
   void setDeviceName(String value) => state = state.copyWith(deviceName: value);
   void setDeviceType(String value) => state = state.copyWith(deviceType: value);
