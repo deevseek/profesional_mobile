@@ -155,7 +155,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
           const SizedBox(height: 6),
           Text('$title #$invoiceNumber', textAlign: TextAlign.center),
           Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}', textAlign: TextAlign.center),
-          Text('CUST: ${widget.service.customerName.toUpperCase()}', textAlign: TextAlign.center),
+          Text('CUST: ${_customerName.toUpperCase()}', textAlign: TextAlign.center),
           Text('METODE: $paymentMethod', textAlign: TextAlign.center),
         ],
       );
@@ -181,7 +181,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
             Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
             Text('NO: $invoiceNumber'),
             Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}'),
-            Text('CUST: ${widget.service.customerName.toUpperCase()}'),
+            Text('CUST: ${_customerName.toUpperCase()}'),
           ],
         ),
       ],
@@ -368,7 +368,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
       children: [
         Expanded(child: _signBox('HORMAT KAMI', 'ADMIN')),
         const SizedBox(width: 24),
-        Expanded(child: _signBox('CUSTOMER', widget.service.customerName.toUpperCase())),
+        Expanded(child: _signBox('CUSTOMER', _customerName.toUpperCase())),
       ],
     );
   }
@@ -452,6 +452,20 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
       : (widget.store['name'] ?? '').toString();
 
   String get _storeAddress => (widget.store['address'] ?? '').toString();
+
+  String get _customerName {
+    final serviceName = widget.service.customerName.trim();
+    if (serviceName.isNotEmpty) {
+      return serviceName;
+    }
+
+    final transactionName = widget.transaction?.customerName.trim() ?? '';
+    if (transactionName.isNotEmpty) {
+      return transactionName;
+    }
+
+    return '-';
+  }
 
   String get _progressTrackingUrl {
     final directUrl = (widget.store['service_tracking_url'] ?? widget.store['tracking_url'] ?? '').toString().trim();
@@ -584,7 +598,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
                 ),
               ],
             ),
-            pw.TableRow(children: [pw.Center(child: pw.Text('CUST: ${widget.service.customerName.toUpperCase()}', textAlign: pw.TextAlign.center))]),
+            pw.TableRow(children: [pw.Center(child: pw.Text('CUST: ${_customerName.toUpperCase()}', textAlign: pw.TextAlign.center))]),
             pw.TableRow(children: [pw.Center(child: pw.Text('METODE: $paymentMethod', textAlign: pw.TextAlign.center))]),
           ],
         );
@@ -612,7 +626,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
                   pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                   pw.Text('NO: $invoiceNumber'),
                   pw.Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}'),
-                  pw.Text('CUST: ${widget.service.customerName.toUpperCase()}'),
+                  pw.Text('CUST: ${_customerName.toUpperCase()}'),
                 ],
               ),
             ],
@@ -782,7 +796,7 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
         children: [
           pw.Expanded(child: signBox('HORMAT KAMI', 'ADMIN')),
           pw.SizedBox(width: 24),
-          pw.Expanded(child: signBox('CUSTOMER', widget.service.customerName.toUpperCase())),
+          pw.Expanded(child: signBox('CUSTOMER', _customerName.toUpperCase())),
         ],
       );
     }
