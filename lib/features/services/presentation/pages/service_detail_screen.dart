@@ -23,17 +23,52 @@ class ServiceDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Detail Service'),
         actions: [
-          IconButton(
-            onPressed: () async {
-              final service = detailAsync.valueOrNull;
-              if (service == null) return;
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ServiceReceiptPreviewScreen(service: service),
-                ),
-              );
-            },
+          PopupMenuButton<String>(
             icon: const Icon(Icons.receipt_long_rounded),
+            onSelected: (value) async {
+              try {
+                if (value == 'receipt') {
+                  final receipt = await notifier.getReceipt();
+                  if (!context.mounted) return;
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ServiceReceiptPreviewScreen(
+                        service: receipt.service,
+                        store: receipt.store,
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                final invoice = await notifier.getInvoice();
+                if (!context.mounted) return;
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ServiceReceiptPreviewScreen(
+                      service: invoice.service,
+                      store: invoice.store,
+                      transaction: invoice.transaction,
+                    ),
+                  ),
+                );
+              } catch (_) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      value == 'invoice'
+                          ? 'Invoice belum tersedia atau gagal dimuat'
+                          : 'Tanda terima gagal dimuat',
+                    ),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'receipt', child: Text('Tanda Terima')),
+              PopupMenuItem(value: 'invoice', child: Text('Invoice')),
+            ],
           ),
         ],
       ),
