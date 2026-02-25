@@ -139,6 +139,9 @@ class _DetailContent extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         _FinalCostSection(serviceId: serviceId, finalCost: service.finalCost),
+
+        const SizedBox(height: 12),
+        _TrackingSection(serviceId: serviceId),
       ],
     );
   }
@@ -480,7 +483,7 @@ class _AddItemDialogState extends ConsumerState<_AddItemDialog> {
                 controller: _priceController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Harga'),
-                validator: (value) => (int.tryParse(value ?? '') ?? -1) < 0 ? 'Harga invalid' : null,
+                validator: (value) => (int.tryParse(value ?? '') ?? 0) <= 0 ? 'Harga harus lebih dari 0' : null,
               ),
               const SizedBox(height: 8),
               Align(
@@ -558,4 +561,57 @@ class _SectionCard extends StatelessWidget {
 
 String _money(int value) {
   return 'Rp ${value.toString()}';
+}
+
+class _TrackingSection extends ConsumerWidget {
+  const _TrackingSection({required this.serviceId});
+
+  final String serviceId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trackingAsync = ref.watch(serviceTrackingProvider(serviceId));
+
+    return _SectionCard(
+      title: 'QR Tracking Service',
+      child: trackingAsync.when(
+        loading: () => const LinearProgressIndicator(minHeight: 3),
+        error: (_, __) => const Text('Gagal memuat QR tracking.'),
+        data: (tracking) {
+          final url = tracking.progressUrl;
+          final qrUrl = tracking.qrUrl;
+          if (url.isEmpty && qrUrl.isEmpty) {
+            return const Text('Tracking URL belum tersedia.');
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (qrUrl.isNotEmpty)
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      qrUrl,
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox(
+                        width: 150,
+                        height: 150,
+                        child: Center(child: Text('QR gagal dimuat')),
+                      ),
+                    ),
+                  ),
+                ),
+              if (url.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(url, style: const TextStyle(fontSize: 12, color: Color(0xFF475467))),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
 }

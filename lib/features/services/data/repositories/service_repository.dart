@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/features/services/data/models/service_model.dart';
+import 'package:profesionalservis_mobile/features/services/data/models/service_tracking_model.dart';
 import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 import 'package:profesionalservis_mobile/features/services/domain/service_payloads.dart';
 import 'package:profesionalservis_mobile/network/dio_client.dart';
@@ -14,10 +15,12 @@ class ServiceReceiptResponse {
   const ServiceReceiptResponse({
     required this.service,
     required this.store,
+    this.tracking = const ServiceTrackingModel(),
   });
 
   final ServiceModel service;
   final Map<String, dynamic> store;
+  final ServiceTrackingModel tracking;
 }
 
 class ServiceInvoiceResponse {
@@ -78,9 +81,16 @@ class ServiceRepository {
       throw const FormatException('Format receipt service tidak valid.');
     }
 
+    final tracking = _parseTrackingPayload(data['tracking']);
+
     return ServiceReceiptResponse(
       service: ServiceModel.fromJson(serviceRaw),
-      store: data['store'] is Map<String, dynamic> ? data['store'] as Map<String, dynamic> : const <String, dynamic>{},
+      store: {
+        ...(data['store'] is Map<String, dynamic> ? data['store'] as Map<String, dynamic> : const <String, dynamic>{}),
+        if (tracking.progressUrl.isNotEmpty) 'tracking_url': tracking.progressUrl,
+        if (tracking.qrUrl.isNotEmpty) 'tracking_qr_url': tracking.qrUrl,
+      },
+      tracking: tracking,
     );
   }
 
@@ -104,6 +114,26 @@ class ServiceRepository {
   Future<ServiceModel> updateService(String id, Map<String, dynamic> payload) async {
     final response = await _dio.patch<Map<String, dynamic>>('/services/$id', data: payload);
     return _unwrapServiceData(response.data);
+  }
+
+  Future<ServiceTrackingModel> getServiceTracking(String id) async {
+    final response = await _dio.get<Map<String, dynamic>>('/services/$id/tracking');
+    final data = _unwrapNestedData(response.data);
+
+    final tracking = _parseTrackingPayload(data['tracking']);
+    if (tracking.progressUrl.isNotEmpty || tracking.qrUrl.isNotEmpty) {
+      return tracking;
+    }
+
+    final serviceRaw = data['service'];
+    if (serviceRaw is Map<String, dynamic>) {
+      final fallback = _parseTrackingPayload(serviceRaw['tracking']);
+      if (fallback.progressUrl.isNotEmpty || fallback.qrUrl.isNotEmpty) {
+        return fallback;
+      }
+    }
+
+    throw const FormatException('Format tracking service tidak valid.');
   }
 
   Future<void> deleteService(String id) async {
@@ -145,5 +175,13 @@ class ServiceRepository {
     }
 
     return body;
+  }
+
+  ServiceTrackingModel _parseTrackingPayload(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return ServiceTrackingModel.fromJson(value);
+    }
+
+    return const ServiceTrackingModel();
   }
 }
