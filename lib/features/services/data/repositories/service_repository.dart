@@ -231,11 +231,44 @@ class ServiceRepository {
   }
 
   Future<ServiceModel> addServiceItem(String serviceId, AddServiceItemPayload payload) async {
-    final response = await _dio.post<Map<String, dynamic>>(
+    final endpoints = <String>[
       '/services/$serviceId/items',
-      data: payload.toJson(),
-    );
-    return _unwrapServiceData(response.data);
+      '/services/$serviceId/spareparts',
+    ];
+
+    final payloadVariants = <Map<String, dynamic>>[
+      payload.toJson(),
+      {
+        'product_id': payload.productId,
+        'quantity': payload.qty,
+        'price': payload.price,
+      },
+    ];
+
+    DioException? lastRetriableError;
+
+    for (final endpoint in endpoints) {
+      for (final data in payloadVariants) {
+        try {
+          final response = await _dio.post<Map<String, dynamic>>(endpoint, data: data);
+          return _unwrapServiceData(response.data);
+        } on DioException catch (error) {
+          final statusCode = error.response?.statusCode;
+          final isRetriable = statusCode == 404 || statusCode == 405 || statusCode == 422;
+          if (isRetriable) {
+            lastRetriableError = error;
+            continue;
+          }
+          rethrow;
+        }
+      }
+    }
+
+    if (lastRetriableError != null) {
+      throw lastRetriableError;
+    }
+
+    throw const FormatException('Endpoint tambah item service tidak ditemukan.');
   }
 
   Future<ServiceModel> deleteServiceItem(String serviceId, String itemId) async {
