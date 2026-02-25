@@ -161,7 +161,7 @@ class ServiceRepository {
     }
 
     if (lastNotFound != null) {
-      rethrow;
+      throw lastNotFound;
     }
 
     throw const FormatException('Endpoint workflow status service tidak ditemukan.');
