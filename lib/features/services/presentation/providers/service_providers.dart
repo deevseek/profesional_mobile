@@ -179,6 +179,21 @@ class ServiceDetailNotifier extends FamilyAsyncNotifier<ServiceModel, String> {
     state = AsyncData(result.requireValue);
     return true;
   }
+
+  Future<ServiceWhatsAppNotificationResponse?> notifyWhatsApp({
+    String? template,
+    String? message,
+  }) async {
+    final result = await AsyncValue.guard(
+      () => _repository.notifyWhatsApp(id: arg, template: template, message: message),
+    );
+
+    if (result.hasError) {
+      return null;
+    }
+
+    return result.requireValue;
+  }
 }
 
 final createServiceProvider = AsyncNotifierProvider<CreateServiceNotifier, void>(
