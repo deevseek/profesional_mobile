@@ -29,6 +29,9 @@ class ServiceModel with _$ServiceModel {
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'];
+    final itemsTotal = _asInt(json['items_sum_total']);
+    final serviceFee = _asInt(json['service_fee']);
+    final fallbackFinalCost = serviceFee > 0 ? serviceFee : itemsTotal;
     final customer = json['customer'] is Map<String, dynamic>
         ? json['customer'] as Map<String, dynamic>
         : const <String, dynamic>{};
@@ -51,7 +54,7 @@ class ServiceModel with _$ServiceModel {
       'technician_id': _asString(json['technician_id']),
       'technician_name': _asString(json['technician_name']),
       'estimated_cost': _asInt(json['deposit']),
-      'final_cost': _asInt(json['service_fee']),
+      'final_cost': fallbackFinalCost,
       'created_at': json['created_at'] ?? json['received_at'],
       'updated_at': json['updated_at'],
       'items': rawItems is List ? rawItems : <Map<String, dynamic>>[],

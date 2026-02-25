@@ -22,7 +22,9 @@ class ServiceItemModel with _$ServiceItemModel {
         ? json['product'] as Map<String, dynamic>
         : const <String, dynamic>{};
     final qty = _asInt(json['qty']);
-    final price = _asInt(json['price']);
+    final productPrice = _asInt(product['price']);
+    final parsedPrice = _asInt(json['price']);
+    final price = parsedPrice > 0 ? parsedPrice : productPrice;
 
     return _$ServiceItemModelFromJson({
       ...json,
@@ -34,7 +36,7 @@ class ServiceItemModel with _$ServiceItemModel {
           : _asString(product['name']),
       'qty': qty,
       'price': price,
-      'subtotal': _asInt(json['subtotal']) > 0 ? _asInt(json['subtotal']) : qty * price,
+      'subtotal': _asInt(json['subtotal'] ?? json['total']) > 0 ? _asInt(json['subtotal'] ?? json['total']) : qty * price,
     });
   }
 }

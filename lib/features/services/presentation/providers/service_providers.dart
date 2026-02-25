@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/product/data/repositories/product_repository.dart';
 import 'package:profesionalservis_mobile/features/services/data/models/service_model.dart';
+import 'package:profesionalservis_mobile/features/services/data/models/service_tracking_model.dart';
 import 'package:profesionalservis_mobile/features/services/data/repositories/service_repository.dart';
 import 'package:profesionalservis_mobile/features/services/domain/service_payloads.dart';
 
@@ -207,4 +208,9 @@ final productSearchProvider = FutureProvider.family<List<ProductModel>, String>(
   final repository = ref.watch(productRepositoryProvider);
   final response = await repository.getProducts(page: 1, search: query);
   return response.data;
+});
+
+final serviceTrackingProvider = FutureProvider.family<ServiceTrackingModel, String>((ref, serviceId) {
+  final repository = ref.watch(serviceRepositoryProvider);
+  return repository.getServiceTracking(serviceId);
 });

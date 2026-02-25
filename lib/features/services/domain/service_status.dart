@@ -6,12 +6,16 @@ extension ServiceStatusX on ServiceStatus {
   static ServiceStatus fromRaw(String raw) {
     switch (raw.toLowerCase()) {
       case 'diagnosa':
+      case 'checking':
         return ServiceStatus.diagnosa;
       case 'dikerjakan':
+      case 'progress':
         return ServiceStatus.dikerjakan;
       case 'selesai':
+      case 'done':
         return ServiceStatus.selesai;
       case 'diambil':
+      case 'delivered':
         return ServiceStatus.diambil;
       case 'pending':
       case 'menunggu':
