@@ -6,17 +6,21 @@ extension ServiceStatusX on ServiceStatus {
   static ServiceStatus fromRaw(String raw) {
     switch (raw.toLowerCase()) {
       case 'diagnosa':
+      case 'diagnosis':
       case 'checking':
         return ServiceStatus.diagnosa;
       case 'dikerjakan':
       case 'progress':
+      case 'in_progress':
         return ServiceStatus.dikerjakan;
       case 'selesai':
       case 'done':
         return ServiceStatus.selesai;
       case 'diambil':
       case 'delivered':
+      case 'picked_up':
         return ServiceStatus.diambil;
+      case 'created':
       case 'pending':
       case 'menunggu':
       default:
@@ -25,6 +29,21 @@ extension ServiceStatusX on ServiceStatus {
   }
 
   String get value => name;
+
+  String get apiValue {
+    switch (this) {
+      case ServiceStatus.menunggu:
+        return 'menunggu';
+      case ServiceStatus.diagnosa:
+        return 'diagnosis';
+      case ServiceStatus.dikerjakan:
+        return 'in_progress';
+      case ServiceStatus.selesai:
+        return 'done';
+      case ServiceStatus.diambil:
+        return 'picked_up';
+    }
+  }
 
   String get label {
     switch (this) {

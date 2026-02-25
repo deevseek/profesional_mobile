@@ -91,13 +91,17 @@ String _normalizeStatus(String rawStatus) {
     case 'menunggu':
       return 'menunggu';
     case 'diagnosa':
+    case 'diagnosis':
       return 'diagnosa';
     case 'dikerjakan':
+    case 'in_progress':
       return 'dikerjakan';
     case 'selesai':
       return 'selesai';
     case 'diambil':
+    case 'picked_up':
       return 'diambil';
+    case 'created':
     case 'pending':
       return 'menunggu';
     case 'checking':
