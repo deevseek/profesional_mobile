@@ -481,37 +481,355 @@ class _ServiceReceiptPreviewScreenState extends State<ServiceReceiptPreviewScree
     final regularFont = await PdfGoogleFonts.notoSansRegular();
     final boldFont = await PdfGoogleFonts.notoSansBold();
     final doc = pw.Document();
-    final format = switch (_selectedFormat) {
-      ReceiptFormat.standard => PdfPageFormat.a4,
-      ReceiptFormat.thermal80 => const PdfPageFormat(80 * PdfPageFormat.mm, 250 * PdfPageFormat.mm),
-      ReceiptFormat.thermal58 => const PdfPageFormat(58 * PdfPageFormat.mm, 250 * PdfPageFormat.mm),
-    };
+    final items = widget.transaction?.items ?? const <TransactionItemModel>[];
+    final hasItems = items.isNotEmpty;
 
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: format,
-        margin: const pw.EdgeInsets.all(12),
-        theme: pw.ThemeData.withFont(
-          base: regularFont,
-          bold: boldFont,
-        ),
-        build: (context) => [
-          pw.Text(
-            (_storeName.isEmpty ? 'Profesional Servis' : _storeName).toUpperCase(),
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
-            textAlign: pw.TextAlign.center,
+    final baseTextStyle = pw.TextStyle(
+      fontSize: _selectedFormat == ReceiptFormat.thermal58 ? 9 : 10,
+      fontWeight: pw.FontWeight.bold,
+      lineSpacing: 1.2,
+    );
+    final titleStyle = pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold);
+
+    pw.Widget pdfLine({bool dashed = false, bool doubleLine = false}) {
+      if (dashed) {
+        return pw.Row(
+          children: List.generate(
+            24,
+            (_) => pw.Expanded(
+              child: pw.Container(
+                height: 1.2,
+                margin: const pw.EdgeInsets.symmetric(horizontal: 1.2),
+                color: PdfColors.black,
+              ),
+            ),
           ),
-          pw.SizedBox(height: 4),
-          pw.Text('Service: ${widget.service.serviceNumber}'),
-          pw.Text('Customer: ${widget.service.customerName}'),
-          pw.Text('Device: ${widget.service.deviceName}'),
-          if (isInvoiceMode) pw.Text('Total: ${_money(widget.transaction?.total ?? widget.service.finalCost)}'),
-          if (isReceiptMode) pw.Text('Tracking: $_progressTrackingUrl'),
-          pw.SizedBox(height: 10),
-          pw.Text('Dicetak: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}'),
+        );
+      }
+
+      return pw.Container(
+        height: doubleLine ? 4 : 1.5,
+        decoration: pw.BoxDecoration(
+          border: pw.Border(bottom: pw.BorderSide(width: doubleLine ? 4 : 1.5, color: PdfColors.black)),
+        ),
+      );
+    }
+
+    pw.Widget cell(
+      String text, {
+      bool header = false,
+      bool alignRight = false,
+      bool center = false,
+    }) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(vertical: 4),
+        decoration: header
+            ? pw.BoxDecoration(
+                border: const pw.Border(
+                  top: pw.BorderSide(width: 1.5, color: PdfColors.black),
+                  bottom: pw.BorderSide(width: 1.5, color: PdfColors.black),
+                ),
+              )
+            : null,
+        child: pw.Text(
+          text,
+          textAlign: alignRight
+              ? pw.TextAlign.right
+              : center
+                  ? pw.TextAlign.center
+                  : pw.TextAlign.left,
+        ),
+      );
+    }
+
+    pw.TableRow totalRow(String label, String value, {bool emphasize = false}) {
+      final style = pw.TextStyle(fontWeight: emphasize ? pw.FontWeight.bold : pw.FontWeight.normal);
+      return pw.TableRow(
+        children: [
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 4),
+            child: pw.Text(label, textAlign: pw.TextAlign.right, style: style),
+          ),
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 4),
+            child: pw.Text(value, textAlign: pw.TextAlign.right, style: style),
+          ),
         ],
+      );
+    }
+
+    pw.Widget buildHeader() {
+      final title = isInvoiceMode ? 'INVOICE SERVIS' : 'TANDA TERIMA SERVIS';
+      final paymentMethod = widget.transaction?.paymentMethod.replaceAll('-', ' ').toUpperCase() ?? '-';
+      final invoiceNumber = widget.transaction?.invoice.isNotEmpty == true
+          ? widget.transaction!.invoice
+          : widget.service.serviceNumber;
+
+      if (isThermal) {
+        return pw.Column(
+          children: [
+            pw.Text(_storeName.toUpperCase(), textAlign: pw.TextAlign.center, style: titleStyle),
+            if (_storeAddress.isNotEmpty) pw.Text(_storeAddress, textAlign: pw.TextAlign.center),
+            pw.SizedBox(height: 6),
+            pw.Text('$title #$invoiceNumber', textAlign: pw.TextAlign.center),
+            pw.Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}', textAlign: pw.TextAlign.center),
+            pw.Text('CUST: ${widget.service.customerName.toUpperCase()}', textAlign: pw.TextAlign.center),
+            pw.Text('METODE: $paymentMethod', textAlign: pw.TextAlign.center),
+          ],
+        );
+      }
+
+      return pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(_storeName.toUpperCase(), style: titleStyle),
+                if (_storeAddress.isNotEmpty) pw.Text(_storeAddress),
+                pw.Text('METODE: $paymentMethod'),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Text(title, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+              pw.Text('NO: $invoiceNumber'),
+              pw.Text('TGL: ${_dateFormat(widget.transaction?.date ?? widget.service.createdAt)}'),
+              pw.Text('CUST: ${widget.service.customerName.toUpperCase()}'),
+            ],
+          ),
+        ],
+      );
+    }
+
+    pw.Widget buildItemsTable() {
+      if (isReceiptMode) {
+        return pw.Table(
+          columnWidths: const {
+            0: pw.FlexColumnWidth(1.2),
+            1: pw.FlexColumnWidth(5.9),
+          },
+          children: [
+            pw.TableRow(children: [cell('QTY', header: true), cell('DESKRIPSI', header: true)]),
+            ...(hasItems
+                ? items.map(
+                    (item) => pw.TableRow(
+                      children: [
+                        cell('${item.quantity}', center: true),
+                        cell(item.name.isEmpty ? 'JASA SERVICE' : item.name.toUpperCase()),
+                      ],
+                    ),
+                  )
+                : [
+                    pw.TableRow(
+                      children: [
+                        cell('1', center: true),
+                        cell('JASA SERVICE\nUNIT: ${widget.service.deviceName.toUpperCase()}'),
+                      ],
+                    ),
+                  ]),
+          ],
+        );
+      }
+
+      return pw.Table(
+        columnWidths: const {
+          0: pw.FlexColumnWidth(1.2),
+          1: pw.FlexColumnWidth(3.7),
+          2: pw.FlexColumnWidth(2.2),
+        },
+        children: [
+          pw.TableRow(
+            children: [
+              cell('QTY', header: true),
+              cell('DESKRIPSI', header: true),
+              cell('TOTAL', header: true, alignRight: true),
+            ],
+          ),
+          ...(hasItems
+              ? items.map(
+                  (item) => pw.TableRow(
+                    children: [
+                      cell('${item.quantity}', center: true),
+                      cell(item.name.isEmpty ? 'JASA SERVICE' : item.name.toUpperCase()),
+                      cell(_money(item.lineTotal), alignRight: true),
+                    ],
+                  ),
+                )
+              : [
+                  pw.TableRow(
+                    children: [
+                      cell('1', center: true),
+                      cell('JASA SERVICE\nUNIT: ${widget.service.deviceName.toUpperCase()}'),
+                      cell(_money(widget.service.finalCost), alignRight: true),
+                    ],
+                  ),
+                ]),
+        ],
+      );
+    }
+
+    pw.Widget buildTotals() {
+      if (isReceiptMode) {
+        return pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Expanded(
+              child: pw.Text(
+                'DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}',
+              ),
+            ),
+          ],
+        );
+      }
+
+      final subtotal = widget.transaction?.subtotal ?? widget.service.finalCost;
+      final total = widget.transaction?.total ?? widget.service.finalCost;
+
+      return pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          if (!isThermal)
+            pw.Expanded(
+              child: pw.Text(
+                'DEVICE: ${widget.service.deviceName.toUpperCase()}\nKELUHAN: ${widget.service.complaint.toUpperCase()}',
+              ),
+            ),
+          pw.Expanded(
+            child: pw.Table(
+              children: [
+                totalRow('SUBTOTAL:', _money(subtotal)),
+                totalRow('TOTAL:', _money(total), emphasize: true),
+                totalRow('DEPOSIT:', _money(widget.service.estimatedCost)),
+                totalRow('SISA:', _money((total - widget.service.estimatedCost).clamp(0, total))),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    pw.Widget buildTrackingQr() {
+      final url = _progressTrackingUrl;
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          pw.Text(
+            'CEK PROGRES PEKERJAAN ONLINE',
+            textAlign: pw.TextAlign.center,
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Center(
+            child: pw.BarcodeWidget(
+              barcode: pw.Barcode.qrCode(),
+              data: url,
+              width: isThermal ? 110 : 150,
+              height: isThermal ? 110 : 150,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            url,
+            textAlign: pw.TextAlign.center,
+            style: const pw.TextStyle(fontSize: 10),
+          ),
+        ],
+      );
+    }
+
+    pw.Widget signBox(String title, String name) {
+      return pw.Column(
+        children: [
+          pw.Text('$title,', textAlign: pw.TextAlign.center),
+          pw.SizedBox(height: 50),
+          pw.Text('($name)', textAlign: pw.TextAlign.center),
+        ],
+      );
+    }
+
+    pw.Widget buildSignature() {
+      return pw.Row(
+        children: [
+          pw.Expanded(child: signBox('HORMAT KAMI', 'ADMIN')),
+          pw.SizedBox(width: 24),
+          pw.Expanded(child: signBox('CUSTOMER', widget.service.customerName.toUpperCase())),
+        ],
+      );
+    }
+
+    pw.Widget buildThermalFooter() {
+      return pw.Column(
+        children: [
+          pdfLine(dashed: true),
+          pw.SizedBox(height: 8),
+          pw.Text('TERIMA KASIH ATAS KEPERCAYAAN ANDA', textAlign: pw.TextAlign.center),
+          pw.Text('* KLAIM GARANSI WAJIB SERTAKAN NOTA INI *', textAlign: pw.TextAlign.center),
+          pw.Text('DICETAK: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}', textAlign: pw.TextAlign.center),
+        ],
+      );
+    }
+
+    final content = pw.Container(
+      width: double.infinity,
+      padding: pw.EdgeInsets.symmetric(horizontal: isThermal ? 14 : 22, vertical: 18),
+      decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.black, width: 1.5)),
+      child: pw.DefaultTextStyle(
+        style: baseTextStyle,
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            buildHeader(),
+            pw.SizedBox(height: 8),
+            pdfLine(doubleLine: true),
+            pw.SizedBox(height: 8),
+            buildItemsTable(),
+            pw.SizedBox(height: 8),
+            pdfLine(dashed: true),
+            pw.SizedBox(height: 8),
+            buildTotals(),
+            if (isReceiptMode) ...[
+              pw.SizedBox(height: 12),
+              pdfLine(dashed: true),
+              pw.SizedBox(height: 10),
+              buildTrackingQr(),
+            ],
+            pw.SizedBox(height: 16),
+            if (!isThermal) buildSignature() else buildThermalFooter(),
+          ],
+        ),
       ),
     );
+
+    final format = switch (_selectedFormat) {
+      ReceiptFormat.standard => PdfPageFormat.a4,
+      ReceiptFormat.thermal80 => PdfPageFormat(80 * PdfPageFormat.mm, (170 + (hasItems ? items.length * 10 : 18)) * PdfPageFormat.mm),
+      ReceiptFormat.thermal58 => PdfPageFormat(58 * PdfPageFormat.mm, (170 + (hasItems ? items.length * 10 : 18)) * PdfPageFormat.mm),
+    };
+
+    if (isThermal) {
+      doc.addPage(
+        pw.Page(
+          pageFormat: format,
+          margin: const pw.EdgeInsets.all(8),
+          theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+          build: (_) => content,
+        ),
+      );
+    } else {
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: format,
+          margin: const pw.EdgeInsets.all(20),
+          theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
+          build: (_) => [content],
+        ),
+      );
+    }
 
     await Printing.layoutPdf(onLayout: (_) async => doc.save());
   }
