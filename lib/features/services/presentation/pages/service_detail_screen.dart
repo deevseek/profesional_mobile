@@ -113,7 +113,7 @@ class _DetailContent extends ConsumerWidget {
           onQuickNext: () async {
             final next = status.next;
             if (next == null) return;
-            final ok = await notifier.updateService({'status': next.value});
+            final ok = await notifier.updateService({'status': next.apiValue});
             if (context.mounted && ok) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Status diubah ke ${next.label}')),
