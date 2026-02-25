@@ -134,6 +134,39 @@ class ServiceRepository {
     return _unwrapServiceData(response.data);
   }
 
+  Future<ServiceModel> updateServiceStatus({
+    required String id,
+    required String status,
+  }) async {
+    final payload = {'status': status};
+    final endpoints = <String>[
+      '/services/$id/workflow-status',
+      '/services/$id/status',
+    ];
+
+    DioException? lastNotFound;
+
+    for (final endpoint in endpoints) {
+      try {
+        final response = await _dio.patch<Map<String, dynamic>>(endpoint, data: payload);
+        return _unwrapServiceData(response.data);
+      } on DioException catch (error) {
+        final statusCode = error.response?.statusCode;
+        if (statusCode == 404) {
+          lastNotFound = error;
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    if (lastNotFound != null) {
+      rethrow;
+    }
+
+    throw const FormatException('Endpoint workflow status service tidak ditemukan.');
+  }
+
   Future<ServiceWhatsAppNotificationResponse> notifyWhatsApp({
     required String id,
     String? template,
