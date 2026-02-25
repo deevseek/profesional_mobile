@@ -24,6 +24,10 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
   final _serviceFeeController = TextEditingController(text: '0');
   final _warrantyDaysController = TextEditingController(text: '0');
   final _customerSearchController = TextEditingController();
+  final _customerNameController = TextEditingController();
+  final _customerPhoneController = TextEditingController();
+  final _customerEmailController = TextEditingController();
+  final _customerAddressController = TextEditingController();
 
   late final ProviderSubscription<AsyncValue<void>> _submitSubscription;
   late final ProviderSubscription<ServiceFormState> _formSubscription;
@@ -49,6 +53,10 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
 
     _formSubscription = ref.listenManual<ServiceFormState>(serviceFormProvider, (previous, next) {
       _syncController(_customerSearchController, next.customerSearch);
+      _syncController(_customerNameController, next.customerName);
+      _syncController(_customerPhoneController, next.customerPhone);
+      _syncController(_customerEmailController, next.customerEmail);
+      _syncController(_customerAddressController, next.customerAddress);
       _syncController(_deviceNameController, next.deviceName);
       _syncController(_deviceTypeController, next.deviceType);
       _syncController(_serialNumberController, next.serialNumber);
@@ -63,6 +71,18 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
   void _registerControllerListeners() {
     _customerSearchController.addListener(() {
       ref.read(serviceFormProvider.notifier).setCustomerSearch(_customerSearchController.text);
+    });
+    _customerNameController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setCustomerName(_customerNameController.text);
+    });
+    _customerPhoneController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setCustomerPhone(_customerPhoneController.text);
+    });
+    _customerEmailController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setCustomerEmail(_customerEmailController.text);
+    });
+    _customerAddressController.addListener(() {
+      ref.read(serviceFormProvider.notifier).setCustomerAddress(_customerAddressController.text);
     });
     _deviceNameController.addListener(() {
       ref.read(serviceFormProvider.notifier).setDeviceName(_deviceNameController.text);
@@ -106,6 +126,10 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
   void dispose() {
     _submitSubscription.close();
     _formSubscription.close();
+    _customerNameController.dispose();
+    _customerPhoneController.dispose();
+    _customerEmailController.dispose();
+    _customerAddressController.dispose();
     _deviceNameController.dispose();
     _deviceTypeController.dispose();
     _serialNumberController.dispose();
@@ -160,6 +184,50 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
                     ref.read(serviceFormProvider.notifier).setCustomer(value);
                   },
                 ),
+
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _customerNameController,
+                  enabled: !isSubmitting,
+                  decoration: const InputDecoration(labelText: 'Nama customer (opsional jika pilih dari daftar)'),
+                  validator: (value) {
+                    final hasSelection = formState.selectedCustomer != null;
+                    final hasName = (value ?? '').trim().isNotEmpty;
+                    if (!hasSelection && !hasName) {
+                      return 'Pilih customer atau isi nama customer';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _customerPhoneController,
+                  enabled: !isSubmitting,
+                  decoration: const InputDecoration(labelText: 'Telepon customer (opsional)'),
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _customerEmailController,
+                  enabled: !isSubmitting,
+                  decoration: const InputDecoration(labelText: 'Email customer (opsional)'),
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    final email = (value ?? '').trim();
+                    if (email.isEmpty) {
+                      return null;
+                    }
+                    final isValidEmail = email.contains('@') && email.contains('.');
+                    return isValidEmail ? null : 'Format email tidak valid';
+                  },
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _customerAddressController,
+                  enabled: !isSubmitting,
+                  decoration: const InputDecoration(labelText: 'Alamat customer (opsional)'),
+                  maxLines: 2,
+                ),
+
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _deviceNameController,
@@ -221,15 +289,13 @@ class _CreateServiceScreenState extends ConsumerState<CreateServiceScreen> {
                           }
 
                           final selectedCustomer = formState.selectedCustomer;
-                          if (selectedCustomer == null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Pilih customer terlebih dahulu')),
-                            );
-                            return;
-                          }
 
                           final payload = CreateServicePayload(
-                            customerId: selectedCustomer.id,
+                            customerId: selectedCustomer?.id,
+                            customerName: selectedCustomer == null ? _customerNameController.text.trim() : null,
+                            customerPhone: selectedCustomer == null ? _customerPhoneController.text.trim() : null,
+                            customerEmail: selectedCustomer == null ? _customerEmailController.text.trim() : null,
+                            customerAddress: selectedCustomer == null ? _customerAddressController.text.trim() : null,
                             device: _deviceNameController.text,
                             model: _deviceTypeController.text,
                             serialNumber: _serialNumberController.text,
