@@ -233,6 +233,7 @@ class ServiceRepository {
   Future<ServiceModel> addServiceItem(String serviceId, AddServiceItemPayload payload) async {
     final endpoints = <String>[
       '/services/$serviceId/items',
+      '/services/$serviceId/add-item',
       '/services/$serviceId/spareparts',
     ];
 
@@ -272,8 +273,32 @@ class ServiceRepository {
   }
 
   Future<ServiceModel> deleteServiceItem(String serviceId, String itemId) async {
-    final response = await _dio.delete<Map<String, dynamic>>('/services/$serviceId/items/$itemId');
-    return _unwrapServiceData(response.data);
+    final endpoints = <String>[
+      '/services/$serviceId/items/$itemId',
+      '/services/$serviceId/delete-item/$itemId',
+    ];
+
+    DioException? lastNotFound;
+
+    for (final endpoint in endpoints) {
+      try {
+        final response = await _dio.delete<Map<String, dynamic>>(endpoint);
+        return _unwrapServiceData(response.data);
+      } on DioException catch (error) {
+        final statusCode = error.response?.statusCode;
+        if (statusCode == 404 || statusCode == 405) {
+          lastNotFound = error;
+          continue;
+        }
+        rethrow;
+      }
+    }
+
+    if (lastNotFound != null) {
+      throw lastNotFound;
+    }
+
+    throw const FormatException('Endpoint hapus item service tidak ditemukan.');
   }
 
   ServiceModel _unwrapServiceData(Map<String, dynamic>? body) {
