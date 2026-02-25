@@ -20,8 +20,8 @@ class TransactionsRepository {
     final response = await _dio.get<Map<String, dynamic>>(
       '/transactions',
       queryParameters: {
-        if (startDate != null) 'start_date': _yyyyMmDd(startDate),
-        if (endDate != null) 'end_date': _yyyyMmDd(endDate),
+        if (startDate != null) 'from': _yyyyMmDd(startDate),
+        if (endDate != null) 'to': _yyyyMmDd(endDate),
         if (search.trim().isNotEmpty) 'search': search.trim(),
       },
     );
@@ -31,7 +31,7 @@ class TransactionsRepository {
 
     final listRaw = data is Map<String, dynamic>
         ? data['items'] ?? data['data'] ?? data['transactions']
-        : data ?? body?['items'];
+        : data;
 
     if (listRaw is! List) {
       return const [];

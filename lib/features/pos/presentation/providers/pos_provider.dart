@@ -221,7 +221,6 @@ class PosNotifier extends StateNotifier<PosState> {
     try {
       final result = await _transactionRepository.createTransaction(
         items: state.cartItems,
-        taxPercent: state.taxPercent,
         paidAmount: paidAmount,
       );
 
