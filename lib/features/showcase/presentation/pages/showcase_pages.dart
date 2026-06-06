@@ -527,7 +527,34 @@ class _SummaryLine extends StatelessWidget {
 }
 
 void _showCreateServiceSheet(BuildContext context) {
-  showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (context) => DraggableScrollableSheet(expand: false, initialChildSize: .88, builder: (_, controller) => ListView(controller: controller, padding: const EdgeInsets.all(20), children: const [SectionHeader(title: 'Buat Tiket / Order Servis', subtitle: 'Foto opsional, maksimal 10 foto. TODO: hubungkan upload ke endpoint media service.'), SizedBox(height: 14), _IntakeForm()]));
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (context) {
+      return DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        minChildSize: 0.45,
+        maxChildSize: 0.95,
+        builder: (_, controller) {
+          return ListView(
+            controller: controller,
+            padding: const EdgeInsets.all(20),
+            children: const [
+              SectionHeader(
+                title: 'Buat Tiket / Order Servis',
+                subtitle:
+                    'Foto opsional, maksimal 10 foto. TODO: hubungkan upload ke endpoint media service.',
+              ),
+              SizedBox(height: 14),
+              _IntakeForm(),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
 
 void _showServiceDetail(BuildContext context, ServiceOrder order) {

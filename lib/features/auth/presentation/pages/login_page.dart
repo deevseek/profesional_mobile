@@ -178,7 +178,7 @@ class _HeroPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      minHeight: 560,
+      constraints: const BoxConstraints(minHeight: 560),
       padding: const EdgeInsets.all(34),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(34),
