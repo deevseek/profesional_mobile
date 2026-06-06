@@ -170,8 +170,8 @@ class _DashboardSkeletonBoxState extends State<DashboardSkeletonBox>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color.lerp(const Color(0xFFEDEFF2), const Color(0xFFF6F7F9), _controller.value)!,
-                Color.lerp(const Color(0xFFF7F8FA), const Color(0xFFEDEFF2), _controller.value)!,
+                Color.lerp(const Color(0xFFEDEFF2), const Color(0xFFF6F7F9), _controller.value) ?? const Color(0xFFEDEFF2),
+                Color.lerp(const Color(0xFFF7F8FA), const Color(0xFFEDEFF2), _controller.value) ?? const Color(0xFFF7F8FA),
               ],
             ),
           ),

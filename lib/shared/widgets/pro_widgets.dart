@@ -43,6 +43,7 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trailingWidget = trailing;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -53,12 +54,12 @@ class SectionHeader extends StatelessWidget {
               Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
-                Text(subtitle!, style: TextStyle(color: _muted(context), fontWeight: FontWeight.w500)),
+                Text(subtitle ?? '', style: TextStyle(color: _muted(context), fontWeight: FontWeight.w500)),
               ],
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        if (trailingWidget != null) trailingWidget,
       ],
     );
   }
@@ -115,6 +116,7 @@ class KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final deltaLabel = delta;
     return ProCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +133,7 @@ class KpiCard extends StatelessWidget {
                 child: Icon(icon, color: color),
               ),
               const Spacer(),
-              if (delta != null) StatusChip(label: delta!, color: AppColors.success),
+              if (deltaLabel != null && deltaLabel.isNotEmpty) StatusChip(label: deltaLabel, color: AppColors.success),
             ],
           ),
           const Spacer(),

@@ -5,7 +5,7 @@ part of 'product_model.dart';
 ProductModel _$ProductModelFromJson(Map<String, dynamic> json) {
   return _ProductModel(
     id: (json['id'] ?? '').toString(),
-    name: (json['name'] ?? '').toString(),
+    name: ((json['name'] ?? '-').toString().trim().isEmpty) ? '-' : (json['name'] ?? '-').toString(),
     sku: (json['sku'] ?? '').toString(),
     category: (json['category'] ?? '').toString(),
     stock: (json['stock'] is num)
