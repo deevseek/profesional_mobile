@@ -12,6 +12,16 @@ mixin _$ProductModel {
   int get price => throw UnimplementedError();
   String get description => throw UnimplementedError();
 
+  ProductModel copyWith({
+    String? id,
+    String? name,
+    String? sku,
+    String? category,
+    int? stock,
+    int? price,
+    String? description,
+  }) => throw UnimplementedError();
+
   Map<String, dynamic> toJson() => throw UnimplementedError();
 }
 
@@ -40,6 +50,27 @@ class _ProductModel extends ProductModel {
   final int price;
   @override
   final String description;
+
+  @override
+  ProductModel copyWith({
+    String? id,
+    String? name,
+    String? sku,
+    String? category,
+    int? stock,
+    int? price,
+    String? description,
+  }) {
+    return _ProductModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      sku: sku ?? this.sku,
+      category: category ?? this.category,
+      stock: stock ?? this.stock,
+      price: price ?? this.price,
+      description: description ?? this.description,
+    );
+  }
 
   @override
   Map<String, dynamic> toJson() => _$ProductModelToJson(this);
