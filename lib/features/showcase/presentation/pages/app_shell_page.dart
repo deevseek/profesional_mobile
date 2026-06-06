@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/core/responsive/breakpoints.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
 import 'package:profesionalservis_mobile/features/showcase/presentation/pages/showcase_pages.dart';
+import 'package:profesionalservis_mobile/shared/widgets/app_error_view.dart';
 import 'package:profesionalservis_mobile/theme/app_colors.dart';
 
 class AppShellPage extends ConsumerStatefulWidget {
@@ -17,14 +18,20 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   int _index = 0;
 
   static const _items = <_NavItem>[
-    _NavItem('Beranda', Icons.dashboard_outlined, Icons.dashboard_rounded),
-    _NavItem('Servis', Icons.build_circle_outlined, Icons.build_circle_rounded),
-    _NavItem('POS', Icons.point_of_sale_outlined, Icons.point_of_sale_rounded),
-    _NavItem('Inventori', Icons.inventory_2_outlined, Icons.inventory_2_rounded),
-    _NavItem('Pelanggan', Icons.people_alt_outlined, Icons.people_alt_rounded),
-    _NavItem('Keuangan', Icons.account_balance_wallet_outlined, Icons.account_balance_wallet_rounded),
-    _NavItem('Lainnya', Icons.more_horiz_rounded, Icons.more_horiz_rounded),
+    _NavItem('Beranda', Icons.dashboard_outlined, Icons.dashboard_rounded, '/home'),
+    _NavItem('Servis', Icons.build_circle_outlined, Icons.build_circle_rounded, '/service'),
+    _NavItem('POS / Kasir', Icons.point_of_sale_outlined, Icons.point_of_sale_rounded, '/pos'),
+    _NavItem('Inventori', Icons.inventory_2_outlined, Icons.inventory_2_rounded, '/inventory'),
+    _NavItem('Pelanggan', Icons.people_alt_outlined, Icons.people_alt_rounded, '/customers'),
+    _NavItem('Keuangan', Icons.account_balance_wallet_outlined, Icons.account_balance_wallet_rounded, '/finance'),
+    _NavItem('Lainnya', Icons.more_horiz_rounded, Icons.more_horiz_rounded, '/more'),
   ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncIndexFromRoute();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,11 +53,23 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
               actions: [IconButton(onPressed: () => _showNotifications(context), icon: const Icon(Icons.notifications_outlined))],
             )
           : null,
-      body: Row(
-        children: [
-          if (!isMobile) _Sidebar(items: _items, selected: _index, onSelect: (index) => setState(() => _index = index), onNotifications: () => _showNotifications(context)),
-          Expanded(child: AnimatedSwitcher(duration: const Duration(milliseconds: 280), child: KeyedSubtree(key: ValueKey(_index), child: pages[_index]))),
-        ],
+      body: SafeArea(
+        top: false,
+        bottom: !isMobile,
+        child: Row(
+          children: [
+            if (!isMobile) _Sidebar(items: _items, selected: _index, onSelect: _selectIndex, onNotifications: () => _showNotifications(context)),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                child: AppErrorBoundary(
+                  key: ValueKey(_index),
+                  child: KeyedSubtree(key: ValueKey('page-$_index'), child: pages[_index]),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showQuickActions(context),
@@ -62,11 +81,32 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
       bottomNavigationBar: isMobile
           ? NavigationBar(
               selectedIndex: _index,
-              onDestinationSelected: (index) => setState(() => _index = index),
+              onDestinationSelected: _selectIndex,
               destinations: _items.map((item) => NavigationDestination(icon: Icon(item.icon), selectedIcon: Icon(item.selectedIcon), label: item.label)).toList(),
             )
           : null,
     );
+  }
+
+
+  void _syncIndexFromRoute() {
+    final path = GoRouterState.of(context).uri.path;
+    final normalizedPath = path == '/dashboard' ? '/home' : path;
+    final routeIndex = _items.indexWhere((item) => item.path == normalizedPath);
+    if (routeIndex >= 0 && routeIndex != _index) {
+      _index = routeIndex;
+    }
+  }
+
+  void _selectIndex(int index) {
+    if (index < 0 || index >= _items.length) {
+      return;
+    }
+    setState(() => _index = index);
+    final path = _items[index].path;
+    if (GoRouterState.of(context).uri.path != path) {
+      context.go(path);
+    }
   }
 
   Future<void> _logout() async {
@@ -99,7 +139,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
                     title: Text(action.$1, style: const TextStyle(fontWeight: FontWeight.w800)),
                     onTap: () {
                       Navigator.pop(context);
-                      setState(() => _index = action.$3);
+                      _selectIndex(action.$3);
                     },
                   )),
             ],
@@ -199,8 +239,9 @@ class _Sidebar extends StatelessWidget {
 }
 
 class _NavItem {
-  const _NavItem(this.label, this.icon, this.selectedIcon);
+  const _NavItem(this.label, this.icon, this.selectedIcon, this.path);
   final String label;
   final IconData icon;
   final IconData selectedIcon;
+  final String path;
 }

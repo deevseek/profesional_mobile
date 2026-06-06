@@ -127,7 +127,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               ),
                               if (authState.errorMessage != null) ...[
                                 const SizedBox(height: 12),
-                                StatusChip(label: authState.errorMessage!, color: AppColors.danger),
+                                StatusChip(label: authState.errorMessage ?? 'Login gagal.', color: AppColors.danger),
                               ],
                               const SizedBox(height: 20),
                               FilledButton.icon(

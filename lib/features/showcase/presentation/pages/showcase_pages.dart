@@ -92,7 +92,7 @@ class _ServiceOrdersShowcasePageState extends ConsumerState<ServiceOrdersShowcas
   Widget build(BuildContext context) {
     final orders = ref.watch(showcaseOrdersProvider);
     final filtered = _status == 'Semua' ? orders : orders.where((e) => e.status == _status).toList();
-    final detail = filtered.isNotEmpty ? filtered.first : orders.first;
+    final detail = filtered.isNotEmpty ? filtered.first : orders.isNotEmpty ? orders.first : const ServiceOrder(number: '-', customer: 'Pengguna', phone: '-', device: '-', issue: '-', dateIn: '-', eta: '-', status: 'Menunggu', color: AppColors.slate);
     final split = !Breakpoints.isMobile(context);
 
     return Row(
@@ -136,13 +136,28 @@ class _ServiceOrdersShowcasePageState extends ConsumerState<ServiceOrdersShowcas
   }
 }
 
-class PosShowcasePage extends ConsumerWidget {
+class PosShowcasePage extends ConsumerStatefulWidget {
   const PosShowcasePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PosShowcasePage> createState() => _PosShowcasePageState();
+}
+
+class _PosShowcasePageState extends ConsumerState<PosShowcasePage> {
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('POS page loaded');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(posProvider);
     final notifier = ref.read(posProvider.notifier);
+    final products = state.filteredProducts;
+    final cartItems = state.cartItems;
+    debugPrint('products count: ${products.length}');
+    debugPrint('cart count: ${cartItems.length}');
     final isTablet = MediaQuery.sizeOf(context).width >= 760;
     final productPanel = ProCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -151,21 +166,22 @@ class PosShowcasePage extends ConsumerWidget {
         SearchBox(hint: 'Search produk / scan barcode', onChanged: notifier.setSearch, trailingIcon: Icons.qr_code_scanner_rounded),
         const SizedBox(height: 12),
         Expanded(
-          child: state.filteredProducts.isEmpty
-              ? const EmptyStatePanel(icon: Icons.inventory_2_outlined, title: 'Produk belum tersedia', message: 'Data produk akan muncul dari API POS existing.')
+          child: products.isEmpty
+              ? const EmptyStatePanel(icon: Icons.inventory_2_outlined, title: 'Belum ada produk', message: 'Tambahkan produk atau sinkronkan data dari server.')
               : GridView.builder(
-                  itemCount: state.filteredProducts.length,
+                  itemCount: products.length,
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: isTablet ? 220 : 170, childAspectRatio: .9, mainAxisSpacing: 12, crossAxisSpacing: 12),
                   itemBuilder: (context, index) {
-                    final product = state.filteredProducts[index];
+                    final product = products[index];
                     return ProCard(
                       onTap: () => notifier.addToCart(product),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Container(height: 54, decoration: BoxDecoration(color: AppColors.primaryBlue.withValues(alpha: .09), borderRadius: BorderRadius.circular(18)), child: const Center(child: Icon(Icons.inventory_2_outlined, color: AppColors.primaryBlue))),
                         const SizedBox(height: 10),
-                        Text(product.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
+                        Text(product.name.trim().isEmpty ? '-' : product.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
                         const Spacer(),
                         Text(_money(product.price), style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryBlue)),
+                        Text('Stok ${product.stock}', style: const TextStyle(color: AppColors.slate, fontSize: 12)),
                       ]),
                     );
                   },
@@ -176,12 +192,32 @@ class PosShowcasePage extends ConsumerWidget {
     final cart = CartCheckoutPanel(state: state, notifier: notifier);
 
     if (!isTablet) {
-      return Scaffold(
-        body: Padding(padding: const EdgeInsets.all(20), child: productPanel),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => showModalBottomSheet<void>(context: context, isScrollControlled: true, builder: (_) => SizedBox(height: MediaQuery.sizeOf(context).height * .82, child: Padding(padding: const EdgeInsets.all(16), child: cart))),
-          icon: const Icon(Icons.shopping_bag_outlined),
-          label: Text('Keranjang (${state.cartItems.length})'),
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(child: productPanel),
+            const SizedBox(height: 12),
+            SafeArea(
+              top: false,
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (_) => SizedBox(
+                      height: MediaQuery.sizeOf(context).height * .82,
+                      child: Padding(padding: const EdgeInsets.all(16), child: cart),
+                    ),
+                  ),
+                  icon: const Icon(Icons.shopping_bag_outlined),
+                  label: Text('Keranjang (${cartItems.length})'),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -229,7 +265,7 @@ class CustomerShowcasePage extends ConsumerWidget {
           ...customers.map((c) => Padding(padding: const EdgeInsets.only(bottom: 12), child: CustomerCard(customer: c))),
         ]),
       ),
-      if (split) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.fromLTRB(0, 20, 20, 20), child: CustomerDetailPanel(customer: customers.first))),
+      if (split) Expanded(flex: 4, child: Padding(padding: const EdgeInsets.fromLTRB(0, 20, 20, 20), child: CustomerDetailPanel(customer: customers.isNotEmpty ? customers.first : const CustomerShowcase(name: 'Pengguna', phone: '-', email: '-', totalService: 0, totalSpend: 'Rp 0', receivable: 'Rp 0')))),
     ]);
   }
 }
@@ -350,7 +386,7 @@ class CartCheckoutPanel extends StatelessWidget {
         const SizedBox(height: 12),
         Expanded(
           child: state.cartItems.isEmpty
-              ? const EmptyStatePanel(icon: Icons.shopping_cart_outlined, title: 'Keranjang kosong', message: 'Pilih produk untuk memulai transaksi.')
+              ? const EmptyStatePanel(icon: Icons.shopping_cart_outlined, title: 'Keranjang masih kosong', message: 'Pilih produk untuk memulai transaksi.')
               : ListView.separated(
                   itemCount: state.cartItems.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -360,7 +396,7 @@ class CartCheckoutPanel extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(18)),
                       child: Row(children: [
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w900)), Text('Qty ${item.quantity} · Diskon ${_money(item.discount)}', style: const TextStyle(color: AppColors.slate))])),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.product.name.trim().isEmpty ? '-' : item.product.name, style: const TextStyle(fontWeight: FontWeight.w900)), Text('Qty ${item.quantity} · Diskon ${_money(item.discount)}', style: const TextStyle(color: AppColors.slate))])),
                         IconButton(onPressed: () => notifier.updateQuantity(productId: item.product.id, quantity: item.quantity - 1), icon: const Icon(Icons.remove_circle_outline)),
                         IconButton(onPressed: () => notifier.updateQuantity(productId: item.product.id, quantity: item.quantity + 1), icon: const Icon(Icons.add_circle_outline)),
                         Text(_money(item.lineTotal), style: const TextStyle(fontWeight: FontWeight.w900)),
@@ -370,11 +406,13 @@ class CartCheckoutPanel extends StatelessWidget {
                 ),
         ),
         Row(children: [const Text('Pajak'), Expanded(child: Slider(min: 0, max: 20, divisions: 20, value: state.taxPercent.toDouble(), onChanged: (v) => notifier.setTaxPercent(v.round()))), Text('${state.taxPercent}%')]),
+        _SummaryLine(label: 'Cabang', value: state.selectedBranch.trim().isEmpty ? 'Cabang Pusat' : state.selectedBranch),
+        _SummaryLine(label: 'Pembayaran', value: state.selectedPaymentMethod.trim().isEmpty ? 'Tunai' : state.selectedPaymentMethod),
         _SummaryLine(label: 'Subtotal', value: _money(state.subtotal)),
         _SummaryLine(label: 'Pajak', value: _money(state.taxAmount)),
         _SummaryLine(label: 'Total', value: _money(state.total), strong: true),
         const SizedBox(height: 10),
-        Wrap(spacing: 8, children: const ['Tunai', 'Transfer', 'QRIS', 'Debit'].map((m) => ChoiceChip(selected: m == 'QRIS', label: Text(m))).toList()),
+        Wrap(spacing: 8, children: const ['Tunai', 'Transfer', 'QRIS', 'Debit'].map((m) => ChoiceChip(selected: m == 'Tunai', label: Text(m))).toList()),
         const SizedBox(height: 12),
         Row(children: [Expanded(child: OutlinedButton.icon(onPressed: state.cartItems.isEmpty ? null : notifier.holdCart, icon: const Icon(Icons.pause_circle_outline), label: const Text('Hold'))), const SizedBox(width: 8), Expanded(child: FilledButton.icon(onPressed: state.cartItems.isEmpty ? null : () => notifier.checkout(paidAmount: state.total), icon: const Icon(Icons.payments_outlined), label: const Text('Bayar')))]),
         const SizedBox(height: 8),
@@ -395,7 +433,7 @@ class CustomerCard extends StatelessWidget {
   const CustomerCard({super.key, required this.customer});
   final CustomerShowcase customer;
   @override
-  Widget build(BuildContext context) => ProCard(child: Row(children: [CircleAvatar(backgroundColor: AppColors.primaryBlue.withValues(alpha: .12), child: Text(customer.name[0], style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w900))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w900)), Text('${customer.phone} · ${customer.email}', style: const TextStyle(color: AppColors.slate)), Text('Servis ${customer.totalService} · Belanja ${customer.totalSpend} · Piutang ${customer.receivable}', style: const TextStyle(color: AppColors.slate, fontSize: 12))])), const Icon(Icons.chat_outlined, color: AppColors.teal)]));
+  Widget build(BuildContext context) => ProCard(child: Row(children: [CircleAvatar(backgroundColor: AppColors.primaryBlue.withValues(alpha: .12), child: Text((customer.name.isNotEmpty ? customer.name[0] : '-'), style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w900))), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w900)), Text('${customer.phone} · ${customer.email}', style: const TextStyle(color: AppColors.slate)), Text('Servis ${customer.totalService} · Belanja ${customer.totalSpend} · Piutang ${customer.receivable}', style: const TextStyle(color: AppColors.slate, fontSize: 12))])), const Icon(Icons.chat_outlined, color: AppColors.teal)]));
 }
 
 class CustomerDetailPanel extends StatelessWidget {
@@ -403,7 +441,7 @@ class CustomerDetailPanel extends StatelessWidget {
   final CustomerShowcase customer;
   @override
   Widget build(BuildContext context) => ProCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [CircleAvatar(radius: 30, backgroundColor: AppColors.primaryBlue, child: Text(customer.name[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(customer.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)), Text(customer.phone), Text(customer.email)]))]),
+        Row(children: [CircleAvatar(radius: 30, backgroundColor: AppColors.primaryBlue, child: Text((customer.name.isNotEmpty ? customer.name[0] : '-'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(customer.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)), Text(customer.phone), Text(customer.email)]))]),
         const SizedBox(height: 18),
         _ResponsiveGrid(minTileWidth: 130, mobileAspect: 1.7, desktopAspect: 1.7, children: [
           KpiCard(title: 'Total servis', value: '${customer.totalService}', icon: Icons.build_outlined, color: AppColors.primaryBlue),
@@ -447,7 +485,7 @@ class _TechnicianRow extends StatelessWidget {
   final String name, role, done;
   final double progress;
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [CircleAvatar(child: Text(name[0])), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(fontWeight: FontWeight.w900)), Text(role, style: const TextStyle(color: AppColors.slate)), const SizedBox(height: 6), LinearProgressIndicator(value: progress, borderRadius: BorderRadius.circular(999))])), const SizedBox(width: 10), Text(done, style: const TextStyle(fontWeight: FontWeight.w800))]));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [CircleAvatar(child: Text(name.isNotEmpty ? name[0] : '-')), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(fontWeight: FontWeight.w900)), Text(role, style: const TextStyle(color: AppColors.slate)), const SizedBox(height: 6), LinearProgressIndicator(value: progress, borderRadius: BorderRadius.circular(999))])), const SizedBox(width: 10), Text(done, style: const TextStyle(fontWeight: FontWeight.w800))]));
 }
 
 class _ResponsiveGrid extends StatelessWidget {

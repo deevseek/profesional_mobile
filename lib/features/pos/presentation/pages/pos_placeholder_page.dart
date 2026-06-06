@@ -150,7 +150,7 @@ class _PosContentState extends ConsumerState<_PosContent> {
               border: Border.all(color: const Color(0xFFFECDCA)),
             ),
             child: Text(
-              state.errorMessage!,
+              state.errorMessage ?? 'Gagal memuat data POS.',
               style: const TextStyle(color: Color(0xFFB42318), fontWeight: FontWeight.w600),
             ),
           ),
@@ -165,7 +165,7 @@ class _PosContentState extends ConsumerState<_PosContent> {
               border: Border.all(color: const Color(0xFFA6F4C5)),
             ),
             child: Text(
-              'Checkout sukses · Invoice: ${state.checkoutResult!.invoice} · Subtotal: ${_money(state.checkoutResult!.subtotal)} · Total: ${_money(state.checkoutResult!.total)} · Kembalian: ${_money(state.checkoutResult!.change)}',
+              'Checkout sukses · Invoice: ${state.checkoutResult?.invoice ?? '-'} · Subtotal: ${_money(state.checkoutResult?.subtotal ?? 0)} · Total: ${_money(state.checkoutResult?.total ?? 0)} · Kembalian: ${_money(state.checkoutResult?.change ?? 0)}',
               style: const TextStyle(color: Color(0xFF027A48), fontWeight: FontWeight.w600),
             ),
           ),
@@ -268,7 +268,13 @@ class _ProductPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Expanded(
-            child: GridView.builder(
+            child: state.filteredProducts.isEmpty
+                ? const _EmptyStatePanel(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'Belum ada produk',
+                    subtitle: 'Tambahkan produk atau sinkronkan data dari server.',
+                  )
+                : GridView.builder(
               itemCount: state.filteredProducts.length,
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 260,
@@ -363,7 +369,7 @@ class _ProductGridItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              product.name,
+              product.name.trim().isEmpty ? '-' : product.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -451,7 +457,7 @@ class _CartItemTile extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  item.product.name,
+                  item.product.name.trim().isEmpty ? '-' : item.product.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w700),
@@ -514,7 +520,7 @@ class _CartItemTile extends StatelessWidget {
           TextButton.icon(
             onPressed: () => _showNumberEditor(
               context: context,
-              title: 'Diskon item (${item.product.name})',
+              title: 'Diskon item (${item.product.name.trim().isEmpty ? '-' : item.product.name})',
               initial: item.discount,
               onSave: (value) => notifier.updateDiscount(
                 productId: item.product.id,
@@ -559,6 +565,8 @@ class _CartSummary extends StatelessWidget {
               Text('${state.taxPercent}%'),
             ],
           ),
+          _SummaryRow(label: 'Cabang', value: state.selectedBranch.trim().isEmpty ? 'Cabang Pusat' : state.selectedBranch),
+          _SummaryRow(label: 'Pembayaran', value: state.selectedPaymentMethod.trim().isEmpty ? 'Tunai' : state.selectedPaymentMethod),
           _SummaryRow(label: 'Subtotal', value: _money(state.subtotal)),
           _SummaryRow(label: 'Pajak', value: _money(state.taxAmount)),
           _SummaryRow(label: 'Total', value: _money(state.total), isStrong: true),

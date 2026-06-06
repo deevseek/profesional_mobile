@@ -41,7 +41,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginPage(),
       ),
       GoRoute(
+        path: '/home',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
+        path: '/dashboard',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
+        path: '/service',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
         path: '/pos',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
+        path: '/inventory',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
+        path: '/customers',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
+        path: '/finance',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
+        path: '/more',
         builder: (context, state) => const AppShellPage(),
       ),
     ],

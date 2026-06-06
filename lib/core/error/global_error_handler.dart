@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:profesionalservis_mobile/shared/widgets/app_error_view.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -20,16 +21,9 @@ class GlobalErrorHandler {
 
     ErrorWidget.builder = (details) => Material(
           color: Colors.white,
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                kReleaseMode
-                    ? 'Terjadi kesalahan. Mohon coba kembali.'
-                    : details.exceptionAsString(),
-                textAlign: TextAlign.center,
-              ),
-            ),
+          child: AppErrorView(
+            message: details.exceptionAsString(),
+            onReload: () {},
           ),
         );
   }

@@ -9,7 +9,7 @@ class ProductModel with _$ProductModel {
 
   const factory ProductModel({
     @Default('') String id,
-    @Default('') String name,
+    @Default('-') String name,
     @Default('') String sku,
     @Default('') String category,
     @Default(0) int stock,
@@ -23,7 +23,7 @@ class ProductModel with _$ProductModel {
     return _$ProductModelFromJson({
       ...json,
       'id': _asString(json['id']),
-      'name': _asString(json['name']),
+      'name': _asString(json['name'], fallback: '-'),
       'sku': _asString(json['sku']),
       'category': _parseCategory(rawCategory),
       'stock': _asInt(json['stock']),
@@ -40,11 +40,12 @@ class ProductModel with _$ProductModel {
     return _asString(value);
   }
 
-  static String _asString(dynamic value) {
+  static String _asString(dynamic value, {String fallback = ''}) {
     if (value == null) {
-      return '';
+      return fallback;
     }
-    return value.toString();
+    final text = value.toString().trim();
+    return text.isEmpty ? fallback : text;
   }
 
   static int _asInt(dynamic value) {

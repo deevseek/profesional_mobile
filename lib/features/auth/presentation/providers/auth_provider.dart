@@ -30,7 +30,9 @@ class AuthState {
   final bool isBootstrapping;
   final bool isSubmitting;
 
-  bool get isAuthenticated => token != null && token!.isNotEmpty;
+  bool get isAuthenticated => (token ?? '').isNotEmpty;
+  UserModel get safeUser => user ?? const UserModel(id: 'guest', name: 'Pengguna', role: 'guest');
+  String get displayName => safeUser.name.trim().isEmpty ? 'Pengguna' : safeUser.name.trim();
 
   AuthState copyWith({
     String? token,

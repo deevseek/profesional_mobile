@@ -18,7 +18,7 @@ mixin _$ProductModel {
 class _ProductModel extends ProductModel {
   const _ProductModel({
     this.id = '',
-    this.name = '',
+    this.name = '-',
     this.sku = '',
     this.category = '',
     this.stock = 0,

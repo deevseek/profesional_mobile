@@ -38,6 +38,8 @@ class PosState {
     this.heldCarts = const {},
     this.search = '',
     this.taxPercent = 11,
+    this.selectedPaymentMethod = 'Tunai',
+    this.selectedBranch = 'Cabang Pusat',
     this.isLoadingProducts = false,
     this.isSubmittingCheckout = false,
     this.errorMessage,
@@ -50,6 +52,8 @@ class PosState {
   final Map<String, List<PosCartItem>> heldCarts;
   final String search;
   final int taxPercent;
+  final String selectedPaymentMethod;
+  final String selectedBranch;
   final bool isLoadingProducts;
   final bool isSubmittingCheckout;
   final String? errorMessage;
@@ -66,6 +70,8 @@ class PosState {
     Map<String, List<PosCartItem>>? heldCarts,
     String? search,
     int? taxPercent,
+    String? selectedPaymentMethod,
+    String? selectedBranch,
     bool? isLoadingProducts,
     bool? isSubmittingCheckout,
     String? errorMessage,
@@ -80,11 +86,18 @@ class PosState {
       heldCarts: heldCarts ?? this.heldCarts,
       search: search ?? this.search,
       taxPercent: taxPercent ?? this.taxPercent,
+      selectedPaymentMethod: _safeText(selectedPaymentMethod ?? this.selectedPaymentMethod, 'Tunai'),
+      selectedBranch: _safeText(selectedBranch ?? this.selectedBranch, 'Cabang Pusat'),
       isLoadingProducts: isLoadingProducts ?? this.isLoadingProducts,
       isSubmittingCheckout: isSubmittingCheckout ?? this.isSubmittingCheckout,
       errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       checkoutResult: clearCheckoutResult ? null : (checkoutResult ?? this.checkoutResult),
     );
+  }
+
+  static String _safeText(String value, String fallback) {
+    final text = value.trim();
+    return text.isEmpty ? fallback : text;
   }
 }
 
@@ -110,9 +123,10 @@ class PosNotifier extends StateNotifier<PosState> {
     state = state.copyWith(isLoadingProducts: true, clearErrorMessage: true);
     try {
       final response = await _productRepository.getProducts(page: 1, search: state.search);
+      final products = response.data.map(_safeProduct).toList(growable: false);
       state = state.copyWith(
-        products: response.data,
-        filteredProducts: response.data,
+        products: products,
+        filteredProducts: products,
         isLoadingProducts: false,
       );
     } catch (_) {
@@ -121,6 +135,15 @@ class PosNotifier extends StateNotifier<PosState> {
         errorMessage: 'Gagal memuat produk POS.',
       );
     }
+  }
+
+  ProductModel _safeProduct(ProductModel product) {
+    return product.copyWith(
+      name: product.name.trim().isEmpty ? '-' : product.name.trim(),
+      price: product.price < 0 ? 0 : product.price,
+      stock: product.stock < 0 ? 0 : product.stock,
+      category: product.category.trim().isEmpty ? 'Umum' : product.category.trim(),
+    );
   }
 
   void setSearch(String value) {
