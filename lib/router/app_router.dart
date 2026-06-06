@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/core/error/global_error_handler.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/pages/login_page.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
-import 'package:profesionalservis_mobile/features/pos/presentation/pages/pos_placeholder_page.dart';
+import 'package:profesionalservis_mobile/features/showcase/presentation/pages/app_shell_page.dart';
 import 'package:profesionalservis_mobile/features/splash/presentation/pages/splash_page.dart';
 import 'package:profesionalservis_mobile/features/tenant/presentation/pages/tenant_selection_page.dart';
 import 'package:profesionalservis_mobile/tenant/tenant_guard.dart';
@@ -42,7 +42,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/pos',
-        builder: (context, state) => const PosPlaceholderPage(),
+        builder: (context, state) => const AppShellPage(),
       ),
     ],
   );
