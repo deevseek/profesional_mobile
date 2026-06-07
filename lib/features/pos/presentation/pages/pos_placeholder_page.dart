@@ -50,14 +50,14 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
           IconButton(
             tooltip: 'Cetak Struk Terakhir',
             onPressed: () {
-              final transaction = ref.read(posProvider).lastPaidTransaction;
-              if (transaction == null) {
+              final receiptPayload = ref.read(posProvider).lastReceiptPayload;
+              if (receiptPayload == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Belum ada transaksi terakhir.')),
                 );
                 return;
               }
-              showTransactionReceipt(context, ref, transaction);
+              showReceiptPreview(context, receiptPayload);
             },
             icon: const Icon(Icons.receipt_long_rounded),
           ),
@@ -709,14 +709,14 @@ class _CartSummary extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    final transaction = ref.read(posProvider).lastPaidTransaction;
-                    if (transaction == null) {
+                    final receiptPayload = ref.read(posProvider).lastReceiptPayload;
+                    if (receiptPayload == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Selesaikan pembayaran terlebih dahulu.')),
                       );
                       return;
                     }
-                    showTransactionReceipt(context, ref, transaction);
+                    showReceiptPreview(context, receiptPayload);
                   },
                   icon: const Icon(Icons.print_rounded),
                   label: const Text('Cetak Struk'),
@@ -767,9 +767,9 @@ Future<void> _processCheckout({
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(after.errorMessage ?? 'Transaksi gagal.')));
     return;
   }
-  final transaction = after.lastPaidTransaction;
-  if (transaction != null) {
-    await showTransactionReceipt(context, ref, transaction);
+  final receiptPayload = after.lastReceiptPayload;
+  if (receiptPayload != null) {
+    await showReceiptPreview(context, receiptPayload);
   }
 }
 

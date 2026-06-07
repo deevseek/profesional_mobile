@@ -142,18 +142,12 @@ class _TransactionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     Future<void> printReceipt() async {
-      try {
-        final detail = await ref.read(transactionDetailProvider(transaction.id).future);
-        if (context.mounted) {
-          await showTransactionReceipt(context, ref, detail);
-        }
-      } catch (error) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal memuat detail transaksi: $error')),
-          );
-        }
+      final transactionId = int.tryParse(transaction.id);
+      if (transactionId == null || transactionId <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID transaksi tidak valid.')));
+        return;
       }
+      await showTransactionReceipt(context, ref, transactionId);
     }
 
     return Material(
@@ -271,10 +265,12 @@ class TransactionDetailPage extends ConsumerWidget {
           IconButton(
             tooltip: 'Cetak Struk',
             onPressed: () async {
-              final transaction = await ref.read(transactionDetailProvider(transactionId).future).catchError((_) => fallbackTransaction);
-              if (context.mounted) {
-                await showTransactionReceipt(context, ref, transaction);
+              final parsedId = int.tryParse(transactionId);
+              if (parsedId == null || parsedId <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID transaksi tidak valid.')));
+                return;
               }
+              await showTransactionReceipt(context, ref, parsedId);
             },
             icon: const Icon(Icons.print_rounded),
           ),

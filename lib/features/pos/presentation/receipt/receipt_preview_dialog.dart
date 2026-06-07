@@ -1,25 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
+import 'package:profesionalservis_mobile/features/pos/data/models/receipt_payload_model.dart';
+import 'package:profesionalservis_mobile/features/pos/data/repositories/receipt_repository.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_document_builder.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_format_selector.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_pdf_service.dart';
-import 'package:profesionalservis_mobile/features/settings/data/models/store_settings_model.dart';
-import 'package:profesionalservis_mobile/features/settings/presentation/providers/settings_provider.dart';
-import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 
-Future<void> showTransactionReceipt(BuildContext context, WidgetRef ref, TransactionModel transaction) {
+Future<void> showReceiptPreview(BuildContext context, ReceiptPayloadModel payload) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => ReceiptPreviewDialog(transaction: transaction),
+    builder: (_) => ReceiptPreviewDialog(payload: payload),
   );
 }
 
-class ReceiptPreviewDialog extends ConsumerStatefulWidget {
-  const ReceiptPreviewDialog({super.key, required this.transaction});
+Future<void> showTransactionReceipt(BuildContext context, WidgetRef ref, int transactionId) async {
+  try {
+    final payload = await ref.read(receiptRepositoryProvider).getTransactionReceipt(transactionId);
+    if (context.mounted) {
+      await showReceiptPreview(context, payload);
+    }
+  } catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat struk transaksi: $error')));
+  }
+}
 
-  final TransactionModel transaction;
+class ReceiptPreviewDialog extends ConsumerStatefulWidget {
+  const ReceiptPreviewDialog({super.key, required this.payload});
+
+  final ReceiptPayloadModel payload;
 
   @override
   ConsumerState<ReceiptPreviewDialog> createState() => _ReceiptPreviewDialogState();
@@ -31,10 +42,6 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider).form;
-    final store = _storeWithFallback(settings);
-    final isThermal = _format != ReceiptFormat.standard;
-
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       child: ConstrainedBox(
@@ -64,7 +71,7 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(16),
-                children: [ReceiptDocumentBuilder(transaction: widget.transaction, store: store, isThermal: isThermal)],
+                children: [ReceiptDocumentBuilder(payload: widget.payload, format: _format)],
               ),
             ),
             SafeArea(
@@ -77,12 +84,12 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
                   alignment: WrapAlignment.end,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: _isPrinting ? null : () => _sharePdf(store),
+                      onPressed: _isPrinting ? null : _sharePdf,
                       icon: const Icon(Icons.picture_as_pdf_rounded),
                       label: const Text('Simpan PDF'),
                     ),
                     FilledButton.icon(
-                      onPressed: _isPrinting ? null : () => _print(store),
+                      onPressed: _isPrinting ? null : _print,
                       icon: _isPrinting
                           ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.print_rounded),
@@ -99,19 +106,21 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
     );
   }
 
-  Future<void> _print(StoreSettingsModel store) async {
+  Future<void> _print() async {
+    final invoice = widget.payload.transaction.invoiceNumber;
     await _guardedPrint(() async {
       await Printing.layoutPdf(
-        name: widget.transaction.invoiceNumber.isEmpty ? 'invoice-pos' : widget.transaction.invoiceNumber,
-        onLayout: (_) => ReceiptPdfService.build(transaction: widget.transaction, store: store, receiptFormat: _format),
+        name: invoice.isEmpty ? 'invoice-pos' : invoice,
+        onLayout: (_) => ReceiptPdfService.build(payload: widget.payload, receiptFormat: _format),
       );
     });
   }
 
-  Future<void> _sharePdf(StoreSettingsModel store) async {
+  Future<void> _sharePdf() async {
+    final invoice = widget.payload.transaction.invoiceNumber;
     await _guardedPrint(() async {
-      final bytes = await ReceiptPdfService.build(transaction: widget.transaction, store: store, receiptFormat: _format);
-      await Printing.sharePdf(bytes: bytes, filename: '${widget.transaction.invoiceNumber.isEmpty ? 'invoice-pos' : widget.transaction.invoiceNumber}.pdf');
+      final bytes = await ReceiptPdfService.build(payload: widget.payload, receiptFormat: _format);
+      await Printing.sharePdf(bytes: bytes, filename: '${invoice.isEmpty ? 'invoice-pos' : invoice}.pdf');
     });
   }
 
@@ -126,10 +135,4 @@ class _ReceiptPreviewDialogState extends ConsumerState<ReceiptPreviewDialog> {
       if (mounted) setState(() => _isPrinting = false);
     }
   }
-
-  StoreSettingsModel _storeWithFallback(StoreSettingsModel settings) => settings.copyWith(
-        storeName: settings.storeName.trim().isEmpty ? 'PROFESIONAL SERVIS' : settings.storeName,
-        address: settings.address.trim().isEmpty ? '-' : settings.address,
-        phone: settings.phone.trim().isEmpty ? '-' : settings.phone,
-      );
 }

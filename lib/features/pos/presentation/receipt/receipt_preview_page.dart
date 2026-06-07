@@ -10,11 +10,12 @@ class ReceiptPreviewPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final transactionId = int.tryParse(transaction.id);
     return Scaffold(
       appBar: AppBar(title: const Text('Preview Struk')),
       body: Center(
         child: FilledButton.icon(
-          onPressed: () => showTransactionReceipt(context, ref, transaction),
+          onPressed: transactionId == null ? null : () => showTransactionReceipt(context, ref, transactionId),
           icon: const Icon(Icons.receipt_long_rounded),
           label: const Text('Buka Preview Struk'),
         ),
