@@ -14,11 +14,12 @@ class ReceiptDocumentBuilder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final transaction = payload.transaction;
-    final store = payload.store;
-    final textTheme = Theme.of(context).textTheme;
-    final customer = transaction.customer?.name ?? transaction.customerName;
-    final horizontalPadding = switch (format) {
+    final maxWidth = switch (format) {
+      ReceiptFormat.standard => 760.0,
+      ReceiptFormat.thermal80 => 360.0,
+      ReceiptFormat.thermal58 => 300.0,
+    };
+    final padding = switch (format) {
       ReceiptFormat.standard => 24.0,
       ReceiptFormat.thermal80 => 12.0,
       ReceiptFormat.thermal58 => 10.0,
@@ -26,7 +27,7 @@ class ReceiptDocumentBuilder extends StatelessWidget {
 
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: isThermal ? (format == ReceiptFormat.thermal58 ? 300 : 360) : 720),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: Card(
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -34,36 +35,10 @@ class ReceiptDocumentBuilder extends StatelessWidget {
             side: const BorderSide(color: Color(0xFFE4E7EC)),
           ),
           child: Padding(
-            padding: EdgeInsets.all(horizontalPadding),
+            padding: EdgeInsets.all(padding),
             child: DefaultTextStyle.merge(
               style: TextStyle(fontSize: isThermal ? (format == ReceiptFormat.thermal58 ? 11 : 12) : 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _StoreHeader(store: store, isThermal: isThermal),
-                  const Divider(height: 24),
-                  Text('INVOICE', textAlign: TextAlign.center, style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-                  _InfoRow(label: 'No', value: transaction.invoiceNumber.isEmpty ? transaction.id : transaction.invoiceNumber),
-                  _InfoRow(label: 'Tgl', value: receiptDate(transaction.createdAt)),
-                  _InfoRow(label: 'Cust', value: customer.trim().isEmpty ? '-' : customer),
-                  _InfoRow(label: 'Metode', value: _paymentMethod(transaction)),
-                  const Divider(height: 24),
-                  _ItemTable(transaction: transaction, isThermal: isThermal),
-                  const Divider(height: 24),
-                  _WarrantySection(transaction: transaction),
-                  const SizedBox(height: 12),
-                  _SummarySection(transaction: transaction),
-                  const SizedBox(height: 12),
-                  const _TermsSection(),
-                  if (!isThermal) ...[
-                    const SizedBox(height: 28),
-                    _SignatureSection(store: store),
-                  ],
-                  const SizedBox(height: 16),
-                  const Text('Terima kasih atas kepercayaan Anda.', textAlign: TextAlign.center),
-                  Text(_storeName(store).toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900)),
-                ],
-              ),
+              child: isThermal ? _ThermalReceipt(payload: payload) : _A4Receipt(payload: payload),
             ),
           ),
         ),
@@ -72,42 +47,146 @@ class ReceiptDocumentBuilder extends StatelessWidget {
   }
 }
 
-class _StoreHeader extends StatelessWidget {
-  const _StoreHeader({required this.store, required this.isThermal});
+class _A4Receipt extends StatelessWidget {
+  const _A4Receipt({required this.payload});
 
-  final StoreReceiptModel store;
-  final bool isThermal;
+  final ReceiptPayloadModel payload;
 
   @override
   Widget build(BuildContext context) {
-    final logo = store.logo.trim();
+    final transaction = payload.transaction;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _StoreHeader(store: payload.store, centered: false, logoSize: 64)),
+            const SizedBox(width: 24),
+            Expanded(child: _InvoicePanel(payload: payload, alignRight: true)),
+          ],
+        ),
+        const Divider(height: 32),
+        _ItemTable(transaction: transaction, isThermal: false),
+        const Divider(height: 32),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _WarrantySection(payload: payload)),
+            const SizedBox(width: 24),
+            Expanded(child: _SummarySection(transaction: transaction)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _MoneyRow(label: 'Bayar', value: transaction.paidAmount),
+        _MoneyRow(label: 'Kembali', value: transaction.changeAmount, strong: true),
+        const SizedBox(height: 16),
+        const _TermsSection(),
+        const SizedBox(height: 28),
+        _SignatureSection(store: payload.store),
+        const SizedBox(height: 16),
+        _Footer(store: payload.store),
+      ],
+    );
+  }
+}
+
+class _ThermalReceipt extends StatelessWidget {
+  const _ThermalReceipt({required this.payload});
+
+  final ReceiptPayloadModel payload;
+
+  @override
+  Widget build(BuildContext context) {
+    final transaction = payload.transaction;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _StoreHeader(store: payload.store, centered: true, logoSize: 42),
+        const Divider(height: 24),
+        _InvoicePanel(payload: payload, centeredTitle: true),
+        const Divider(height: 24),
+        _ItemTable(transaction: transaction, isThermal: true),
+        const Divider(height: 24),
+        _SummarySection(transaction: transaction, includePaymentRows: true),
+        const SizedBox(height: 12),
+        _WarrantySection(payload: payload),
+        const SizedBox(height: 12),
+        const _TermsSection(),
+        const SizedBox(height: 16),
+        _Footer(store: payload.store),
+      ],
+    );
+  }
+}
+
+class _StoreHeader extends StatelessWidget {
+  const _StoreHeader({required this.store, required this.centered, required this.logoSize});
+
+  final ReceiptStoreModel store;
+  final bool centered;
+  final double logoSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final logo = store.effectiveLogoUrl;
+    final alignment = centered ? CrossAxisAlignment.center : CrossAxisAlignment.start;
+    final textAlign = centered ? TextAlign.center : TextAlign.left;
+    return Column(
+      crossAxisAlignment: alignment,
       children: [
         if (logo.isNotEmpty)
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
               logo,
-              width: isThermal ? 42 : 58,
-              height: isThermal ? 42 : 58,
+              width: logoSize,
+              height: logoSize,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, size: isThermal ? 36 : 42),
+              errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, size: logoSize - 6),
             ),
           )
         else
-          Icon(Icons.store_rounded, size: isThermal ? 36 : 42),
+          Icon(Icons.store_rounded, size: logoSize - 6),
         const SizedBox(height: 6),
         Text(
           _storeName(store).toUpperCase(),
-          textAlign: TextAlign.center,
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: isThermal ? 16 : 20),
+          textAlign: textAlign,
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: centered ? 16 : 20),
         ),
-        Text(_safe(store.address), textAlign: TextAlign.center),
-        Text('WA/Telp: ${_safe(store.phone)}', textAlign: TextAlign.center),
-        if (store.hours.trim().isNotEmpty) Text('Jam: ${store.hours.trim()}', textAlign: TextAlign.center),
-        ...store.bankAccountNumbers.map((account) => Text('Rekening: $account', textAlign: TextAlign.center)),
-        if (store.npwpNumber.trim().isNotEmpty) Text('NPWP: ${store.npwpNumber.trim()}', textAlign: TextAlign.center),
+        Text(_safe(store.address), textAlign: textAlign),
+        Text('WA/Telp: ${_safe(store.phone)}', textAlign: textAlign),
+        if (store.hours.trim().isNotEmpty) Text('Jam: ${store.hours.trim()}', textAlign: textAlign),
+        ...store.bankAccountNumbers.map((account) => Text('Rekening: $account', textAlign: textAlign)),
+        if (store.npwpNumber.trim().isNotEmpty) Text('NPWP: ${store.npwpNumber.trim()}', textAlign: textAlign),
+      ],
+    );
+  }
+}
+
+class _InvoicePanel extends StatelessWidget {
+  const _InvoicePanel({required this.payload, this.alignRight = false, this.centeredTitle = false});
+
+  final ReceiptPayloadModel payload;
+  final bool alignRight;
+  final bool centeredTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final transaction = payload.transaction;
+    final customer = transaction.customer?.name ?? transaction.customerName;
+    return Column(
+      crossAxisAlignment: alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(
+          'INVOICE',
+          textAlign: centeredTitle ? TextAlign.center : (alignRight ? TextAlign.right : TextAlign.left),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        _InfoRow(label: 'No', value: transaction.invoiceNumber.isEmpty ? transaction.id : transaction.invoiceNumber, alignRight: alignRight),
+        _InfoRow(label: 'Tgl', value: receiptDate(transaction.createdAt), alignRight: alignRight),
+        _InfoRow(label: 'Cust', value: customer.trim().isEmpty ? '-' : customer, alignRight: alignRight),
+        _InfoRow(label: 'Metode', value: payload.paymentMethodLabel, alignRight: alignRight),
       ],
     );
   }
@@ -171,32 +250,38 @@ class _ItemTable extends StatelessWidget {
 }
 
 class _WarrantySection extends StatelessWidget {
-  const _WarrantySection({required this.transaction});
+  const _WarrantySection({required this.payload});
 
-  final TransactionModel transaction;
+  final ReceiptPayloadModel payload;
 
   @override
   Widget build(BuildContext context) {
-    final warrantyItems = transaction.items.where((item) => (item.product?.warrantyDays ?? 0) > 0).toList(growable: false);
-    if (warrantyItems.isEmpty) return const Text('GARANSI: -', style: TextStyle(fontWeight: FontWeight.w900));
+    final lines = payload.warrantyTermLines.isNotEmpty ? payload.warrantyTermLines : _fallbackWarrantyLines(payload.transaction);
+    if (lines.isEmpty) return const Text('GARANSI: -', style: TextStyle(fontWeight: FontWeight.w900));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('GARANSI', style: TextStyle(fontWeight: FontWeight.w900)),
-        ...warrantyItems.map((item) {
-          final days = item.product?.warrantyDays ?? 0;
-          final until = transaction.createdAt.add(Duration(days: days));
-          return Text('GARANSI ${item.name.toUpperCase()}: $days HARI, S/D ${receiptDateOnly(until)}');
-        }),
+        ...lines.map((line) => Text(line)),
       ],
     );
+  }
+
+  static List<String> _fallbackWarrantyLines(TransactionModel transaction) {
+    final warrantyItems = transaction.items.where((item) => (item.product?.warrantyDays ?? 0) > 0).toList(growable: false);
+    return warrantyItems.map((item) {
+      final days = item.product?.warrantyDays ?? 0;
+      final until = transaction.createdAt.add(Duration(days: days));
+      return 'GARANSI ${item.name.toUpperCase()}: $days HARI, S/D ${receiptDateOnly(until)}';
+    }).toList(growable: false);
   }
 }
 
 class _SummarySection extends StatelessWidget {
-  const _SummarySection({required this.transaction});
+  const _SummarySection({required this.transaction, this.includePaymentRows = false});
 
   final TransactionModel transaction;
+  final bool includePaymentRows;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -205,8 +290,10 @@ class _SummarySection extends StatelessWidget {
           if (transaction.discount > 0) _MoneyRow(label: 'Diskon', value: -transaction.discount),
           if (transaction.taxAmount > 0) _MoneyRow(label: 'PPN / Pajak', value: transaction.taxAmount),
           _MoneyRow(label: 'Total', value: transaction.total, strong: true),
-          _MoneyRow(label: 'Bayar', value: transaction.paidAmount),
-          _MoneyRow(label: 'Kembali', value: transaction.changeAmount),
+          if (includePaymentRows) ...[
+            _MoneyRow(label: 'Bayar', value: transaction.paidAmount),
+            _MoneyRow(label: 'Kembali', value: transaction.changeAmount),
+          ],
         ],
       );
 }
@@ -229,7 +316,7 @@ class _TermsSection extends StatelessWidget {
 class _SignatureSection extends StatelessWidget {
   const _SignatureSection({required this.store});
 
-  final StoreReceiptModel store;
+  final ReceiptStoreModel store;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -250,21 +337,37 @@ class _SignatureSection extends StatelessWidget {
       );
 }
 
+class _Footer extends StatelessWidget {
+  const _Footer({required this.store});
+
+  final ReceiptStoreModel store;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          const Text('Terima kasih atas kepercayaan Anda.', textAlign: TextAlign.center),
+          Text(_storeName(store).toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900)),
+        ],
+      );
+}
+
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.alignRight = false});
 
   final String label;
   final String value;
+  final bool alignRight;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
-            SizedBox(width: 76, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+            SizedBox(width: 76, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700), textAlign: alignRight ? TextAlign.right : TextAlign.left)),
             const Text(': '),
-            Expanded(child: Text(value.trim().isEmpty ? '-' : value.trim())),
+            Flexible(child: Text(value.trim().isEmpty ? '-' : value.trim(), textAlign: alignRight ? TextAlign.right : TextAlign.left)),
           ],
         ),
       );
@@ -289,10 +392,5 @@ class _MoneyRow extends StatelessWidget {
       );
 }
 
-String _paymentMethod(TransactionModel transaction) {
-  final method = transaction.paymentMethod.replaceAll('-', ' ').toUpperCase();
-  return method.trim().isEmpty ? '-' : method;
-}
-
 String _safe(String value) => value.trim().isEmpty ? '-' : value.trim();
-String _storeName(StoreReceiptModel store) => store.name.trim().isEmpty ? 'PROFESIONAL SERVIS' : store.name.trim();
+String _storeName(ReceiptStoreModel store) => store.name.trim().isEmpty ? 'PROFESIONAL SERVIS' : store.name.trim();

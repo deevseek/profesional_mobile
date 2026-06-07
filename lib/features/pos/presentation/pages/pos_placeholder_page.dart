@@ -49,16 +49,7 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
         actions: [
           IconButton(
             tooltip: 'Cetak Struk Terakhir',
-            onPressed: () {
-              final receiptPayload = ref.read(posProvider).lastReceiptPayload;
-              if (receiptPayload == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Belum ada transaksi terakhir.')),
-                );
-                return;
-              }
-              showReceiptPreview(context, receiptPayload);
-            },
+            onPressed: () => _reprintLastReceipt(context, ref, emptyMessage: 'Belum ada transaksi terakhir.'),
             icon: const Icon(Icons.receipt_long_rounded),
           ),
           IconButton(
@@ -708,16 +699,7 @@ class _CartSummary extends ConsumerWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    final receiptPayload = ref.read(posProvider).lastReceiptPayload;
-                    if (receiptPayload == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Selesaikan pembayaran terlebih dahulu.')),
-                      );
-                      return;
-                    }
-                    showReceiptPreview(context, receiptPayload);
-                  },
+                  onPressed: () => _reprintLastReceipt(context, ref),
                   icon: const Icon(Icons.print_rounded),
                   label: const Text('Cetak Struk'),
                 ),
@@ -743,6 +725,21 @@ class _CartSummary extends ConsumerWidget {
       ),
     );
   }
+}
+
+
+Future<void> _reprintLastReceipt(
+  BuildContext context,
+  WidgetRef ref, {
+  String emptyMessage = 'Selesaikan pembayaran terlebih dahulu.',
+}) async {
+  final transaction = ref.read(posProvider).lastPaidTransaction;
+  final transactionId = int.tryParse(transaction?.id ?? '');
+  if (transactionId == null || transactionId <= 0) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(emptyMessage)));
+    return;
+  }
+  await showTransactionReceipt(context, ref, transactionId);
 }
 
 Future<void> _processCheckout({
