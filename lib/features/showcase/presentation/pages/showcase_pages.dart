@@ -620,7 +620,7 @@ Future<void> _printReceipt(PosCheckoutResult result) async {
         pw.Text('Metode: ${result.paymentMethod.label}'),
         pw.Text('Dibayar: ${_money(result.paidAmount)}'),
         pw.Text('Kembali: ${_money(result.change)}'),
-      ]));
+      ])));
   await Printing.layoutPdf(onLayout: (_) async => doc.save());
 }
 
