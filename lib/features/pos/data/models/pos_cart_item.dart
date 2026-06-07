@@ -12,6 +12,7 @@ class PosCartItem {
   final int discount;
 
   int get lineBaseTotal => product.price * quantity;
+  int get hpp => 0;
   int get lineTotal => (lineBaseTotal - discount).clamp(0, lineBaseTotal).toInt();
 
   PosCartItem copyWith({

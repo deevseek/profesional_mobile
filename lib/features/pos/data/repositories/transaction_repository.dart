@@ -32,7 +32,7 @@ class TransactionRepository {
   Future<TransactionResult> createTransaction({
     required List<PosCartItem> items,
     required int paidAmount,
-    String paymentMethod = 'cash',
+    required String paymentMethod,
     int? customerId,
     int discount = 0,
   }) async {
@@ -56,7 +56,7 @@ class TransactionRepository {
                 'product_id': parseInt(item.product.id),
                 'quantity': item.quantity,
                 'price': item.product.price,
-                'hpp': 0,
+                'hpp': item.hpp,
               },
             )
             .toList(growable: false),
