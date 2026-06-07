@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:profesionalservis_mobile/core/responsive/breakpoints.dart';
 import 'package:profesionalservis_mobile/features/auth/presentation/providers/auth_provider.dart';
+import 'package:profesionalservis_mobile/features/customer/presentation/pages/customer_page.dart';
+import 'package:profesionalservis_mobile/features/finance/presentation/pages/finance_page.dart';
+import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
+import 'package:profesionalservis_mobile/features/services/presentation/pages/service_list_screen.dart';
+import 'package:profesionalservis_mobile/features/settings/presentation/pages/settings_page.dart';
 import 'package:profesionalservis_mobile/features/showcase/presentation/pages/showcase_pages.dart';
 import 'package:profesionalservis_mobile/shared/widgets/app_error_view.dart';
 import 'package:profesionalservis_mobile/theme/app_colors.dart';
@@ -38,12 +43,12 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     final isMobile = Breakpoints.isMobile(context);
     final pages = [
       const DashboardShowcasePage(),
-      const ServiceOrdersShowcasePage(),
+      const ServiceListScreen(),
       const PosShowcasePage(),
-      const InventoryShowcasePage(),
-      const CustomerShowcasePage(),
-      const FinanceShowcasePage(),
-      SettingsShowcasePage(onLogout: _logout),
+      const ProductPage(),
+      const CustomerPage(),
+      const FinancePage(),
+      const SettingsPage(),
     ];
 
     return Scaffold(
@@ -91,7 +96,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
 
   void _syncIndexFromRoute() {
     final path = GoRouterState.of(context).uri.path;
-    final normalizedPath = path == '/dashboard' ? '/home' : path;
+    final normalizedPath = path == '/dashboard' ? '/home' : (path == '/services' ? '/service' : path);
     final routeIndex = _items.indexWhere((item) => item.path == normalizedPath);
     if (routeIndex >= 0 && routeIndex != _index) {
       _index = routeIndex;

@@ -60,8 +60,8 @@ class PosState {
   final PosCheckoutResult? checkoutResult;
 
   int get subtotal => cartItems.fold<int>(0, (sum, item) => sum + item.lineTotal);
-  int get taxAmount => ((subtotal * taxPercent) / 100).round();
-  int get total => subtotal + taxAmount;
+  int get taxAmount => 0;
+  int get total => subtotal;
 
   PosState copyWith({
     List<ProductModel>? products,
@@ -197,6 +197,15 @@ class PosNotifier extends StateNotifier<PosState> {
     );
   }
 
+
+  void setPaymentMethod(String value) {
+    state = state.copyWith(selectedPaymentMethod: value, clearCheckoutResult: true);
+  }
+
+  void setBranch(String value) {
+    state = state.copyWith(selectedBranch: value, clearCheckoutResult: true);
+  }
+
   void setTaxPercent(int value) {
     state = state.copyWith(
       taxPercent: value.clamp(0, 100),
@@ -245,6 +254,7 @@ class PosNotifier extends StateNotifier<PosState> {
       final result = await _transactionRepository.createTransaction(
         items: state.cartItems,
         paidAmount: paidAmount,
+        paymentMethod: state.selectedPaymentMethod,
       );
 
       state = state.copyWith(

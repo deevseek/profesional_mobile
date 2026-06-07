@@ -39,7 +39,9 @@ class SettingsState {
 }
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
-  SettingsNotifier(this._repository) : super(SettingsState.initial());
+  SettingsNotifier(this._repository) : super(SettingsState.initial()) {
+    loadSettings();
+  }
 
   final SettingsRepository _repository;
 
@@ -97,6 +99,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       clearSuccessMessage: true,
       clearErrorMessage: true,
     );
+  }
+
+  Future<void> loadSettings() async {
+    try {
+      final settings = await _repository.getSettings();
+      state = state.copyWith(form: settings, clearErrorMessage: true);
+    } catch (_) {
+      state = state.copyWith(errorMessage: 'Gagal memuat pengaturan toko.');
+    }
   }
 
   Future<bool> saveAll() async {
