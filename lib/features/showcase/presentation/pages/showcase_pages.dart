@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/core/responsive/breakpoints.dart';
+import 'package:profesionalservis_mobile/features/app_config/presentation/providers/app_config_provider.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/showcase/data/showcase_models.dart';
 import 'package:profesionalservis_mobile/features/showcase/data/showcase_providers.dart';
@@ -13,67 +15,108 @@ class DashboardShowcasePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kpis = ref.watch(showcaseKpisProvider);
-    final activities = ref.watch(showcaseActivitiesProvider);
+    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final config = ref.watch(appConfigProvider).valueOrNull;
     final hour = DateTime.now().hour;
     final greeting = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam';
 
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        _DashboardHero(greeting: greeting),
-        const SizedBox(height: 18),
-        _ResponsiveGrid(
-          minTileWidth: 170,
-          mobileAspect: 1.2,
-          desktopAspect: 1.35,
-          children: kpis.map((kpi) => KpiCard(title: kpi.title, value: kpi.value, icon: kpi.icon, color: kpi.color, delta: kpi.delta)).toList(),
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(dashboardSummaryProvider);
+        ref.invalidate(appConfigProvider);
+      },
+      child: summaryAsync.when(
+        loading: () => ListView(
+          padding: const EdgeInsets.all(20),
+          children: const [
+            _DashboardHero(greeting: 'Memuat dashboard'),
+            SizedBox(height: 18),
+            Center(child: CircularProgressIndicator()),
+          ],
         ),
-        const SizedBox(height: 22),
-        LayoutBuilder(builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 860;
-          return Flex(
-            direction: wide ? Axis.horizontal : Axis.vertical,
-            crossAxisAlignment: CrossAxisAlignment.start,
+        error: (error, _) => ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            _DashboardHero(greeting: greeting),
+            const SizedBox(height: 18),
+            EmptyStatePanel(
+              icon: Icons.error_outline_rounded,
+              title: 'Dashboard gagal dimuat',
+              message: error.toString(),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(onPressed: () => ref.invalidate(dashboardSummaryProvider), icon: const Icon(Icons.refresh), label: const Text('Coba lagi')),
+          ],
+        ),
+        data: (summary) {
+          final kpis = [
+            ('Penjualan hari ini', _money(summary.todaySales.round()), Icons.today_rounded, AppColors.success),
+            ('Penjualan bulan ini', _money(summary.monthlySales.round()), Icons.calendar_month_rounded, AppColors.primaryBlue),
+            ('Transaksi hari ini', summary.transactionsToday.toString(), Icons.receipt_long_rounded, AppColors.warning),
+            ('Pelanggan', summary.customersCount.toString(), Icons.people_alt_rounded, AppColors.cyan),
+            ('Produk', summary.productsCount.toString(), Icons.inventory_2_rounded, AppColors.primaryNavy),
+            ('Servis aktif', summary.activeServicesCount.toString(), Icons.build_circle_rounded, AppColors.danger),
+            ('Hutang pembelian', _money(summary.outstandingPurchases.round()), Icons.shopping_bag_outlined, AppColors.slate),
+          ];
+          final chartValues = summary.financeIncome.isNotEmpty ? summary.financeIncome : summary.financeExpense;
+          return ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              Flexible(
-                flex: 3,
-                child: ProCard(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-                    SectionHeader(title: 'Grafik penjualan 7 hari terakhir', subtitle: 'Omzet harian dari seluruh cabang'),
-                    SizedBox(height: 18),
-                    MiniBarChart(values: [7.5, 9.2, 8, 11.4, 10.6, 13.7, 12.8]),
-                  ]),
+              _DashboardHero(greeting: '$greeting, ${config?.storeName ?? 'Profesional Servis'}'),
+              const SizedBox(height: 18),
+              if (summary.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: EmptyStatePanel(icon: Icons.insights_outlined, title: 'Belum ada data operasional', message: 'Data akan muncul setelah transaksi, servis, pelanggan, dan produk tercatat di API.'),
                 ),
+              _ResponsiveGrid(
+                minTileWidth: 170,
+                mobileAspect: 1.2,
+                desktopAspect: 1.35,
+                children: kpis.map((kpi) => KpiCard(title: kpi.$1, value: kpi.$2, icon: kpi.$3, color: kpi.$4, delta: 'API')).toList(),
               ),
-              SizedBox(width: wide ? 16 : 0, height: wide ? 0 : 16),
-              Flexible(
-                flex: 2,
-                child: ProCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SectionHeader(title: 'Aktivitas terbaru', subtitle: 'Notifikasi operasional hari ini'),
-                      const SizedBox(height: 12),
-                      ...activities.map((item) => _ActivityRow(item: item)),
-                    ],
-                  ),
-                ),
+              const SizedBox(height: 22),
+              ProCard(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const SectionHeader(title: 'Income vs Expense 7 hari', subtitle: 'Diambil dari /dashboard/summary'),
+                  const SizedBox(height: 18),
+                  if (chartValues.isEmpty) const EmptyStatePanel(icon: Icons.bar_chart_outlined, title: 'Grafik kosong', message: 'Belum ada data finance_chart dari API.') else MiniBarChart(values: chartValues.map((v) => v <= 0 ? 1.0 : v).toList()),
+                ]),
               ),
+              const SizedBox(height: 18),
+              _RecentApiList(title: 'Transaksi terbaru', items: summary.recentTransactions),
+              const SizedBox(height: 18),
+              _RecentApiList(title: 'Servis terbaru', items: summary.recentServices),
             ],
           );
-        }),
-        const SizedBox(height: 18),
-        ProCard(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-            SectionHeader(title: 'Performa teknisi', subtitle: 'Produktivitas servis aktif'),
-            SizedBox(height: 14),
-            _TechnicianRow(name: 'Bima', role: 'Senior Technician', progress: .86, done: '12 selesai'),
-            _TechnicianRow(name: 'Nadia', role: 'Apple Specialist', progress: .72, done: '9 selesai'),
-            _TechnicianRow(name: 'Rangga', role: 'Printer & Laptop', progress: .63, done: '7 selesai'),
-          ]),
-        ),
-      ],
+        },
+      ),
+    );
+  }
+}
+
+class _RecentApiList extends StatelessWidget {
+  const _RecentApiList({required this.title, required this.items});
+
+  final String title;
+  final List<Map<String, dynamic>> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return ProCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SectionHeader(title: title, subtitle: 'Data API terbaru'),
+        const SizedBox(height: 12),
+        if (items.isEmpty)
+          const EmptyStatePanel(icon: Icons.inbox_outlined, title: 'Belum ada data', message: 'Data terbaru belum tersedia.'),
+        ...items.take(5).map((item) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const CircleAvatar(child: Icon(Icons.receipt_long_outlined)),
+              title: Text((item['invoice_number'] ?? item['device'] ?? item['customer_name'] ?? item['name'] ?? '-').toString(), style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text((item['status'] ?? item['created_at'] ?? item['updated_at'] ?? '').toString()),
+              trailing: Text((item['total'] ?? item['service_fee'] ?? '').toString()),
+            )),
+      ]),
     );
   }
 }

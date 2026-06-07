@@ -14,7 +14,7 @@ class DashboardRepository {
 
   Future<DashboardSummaryModel> getSummary() async {
     final response =
-        await _dio.get<Map<String, dynamic>>('/dashboard/summary');
+        await _dio.get<Map<String, dynamic>>('/dashboard/summary', queryParameters: {'days': 7});
 
     final data = response.data;
     if (data == null) {

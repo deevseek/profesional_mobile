@@ -1,3 +1,5 @@
+import 'package:profesionalservis_mobile/shared/utils/json_parsers.dart';
+
 class PaginatedResponse<T> {
   const PaginatedResponse({
     required this.data,
@@ -32,38 +34,20 @@ class PaginatedResponse<T> {
   }
 
   static int? _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    return null;
+    if (value == null) return null;
+    return parseInt(value);
   }
 
   factory PaginatedResponse.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic> item) fromJsonT,
   ) {
-    final rawData = json['data'];
-    final parsedData = rawData is List
-        ? rawData
-              .whereType<Map<String, dynamic>>()
-              .map(fromJsonT)
-              .toList(growable: false)
-        : <T>[];
+    final parsedData = unwrapDataList(json).map(fromJsonT).toList(growable: false);
 
     return PaginatedResponse<T>(
       data: parsedData,
-      meta: (json['meta'] is Map<String, dynamic>)
-          ? json['meta'] as Map<String, dynamic>
-          : <String, dynamic>{},
-      links: (json['links'] is Map<String, dynamic>)
-          ? json['links'] as Map<String, dynamic>
-          : <String, dynamic>{},
+      meta: parseMap(json['meta']),
+      links: parseMap(json['links']),
     );
   }
 }

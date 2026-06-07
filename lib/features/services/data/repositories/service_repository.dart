@@ -176,8 +176,8 @@ class ServiceRepository {
     final response = await _dio.post<Map<String, dynamic>>(
       '/services/$id/notify-whatsapp',
       data: {
-        if (template != null && template.isNotEmpty) 'template': template,
-        if (message != null && message.trim().isNotEmpty) 'message': message.trim(),
+        'template': template != null && template.isNotEmpty ? template : 'created',
+        'message': message != null && message.trim().isNotEmpty ? message.trim() : null,
       },
     );
 
@@ -223,7 +223,7 @@ class ServiceRepository {
       }
     }
 
-    throw const FormatException('Format tracking service tidak valid.');
+    return const ServiceTrackingModel();
   }
 
   Future<void> deleteService(String id) async {
@@ -232,6 +232,7 @@ class ServiceRepository {
 
   Future<ServiceModel> addServiceItem(String serviceId, AddServiceItemPayload payload) async {
     final endpoints = <String>[
+      '/service-items',
       '/services/$serviceId/add-item',
       '/services/$serviceId/items',
       '/services/$serviceId/add-item',
@@ -240,8 +241,10 @@ class ServiceRepository {
 
     final payloadVariants = <Map<String, dynamic>>[
       {
+        'service_id': serviceId,
         'product_id': payload.productId,
         'quantity': payload.qty,
+        'price': payload.price,
       },
       payload.toJson(),
       {
@@ -291,6 +294,7 @@ class ServiceRepository {
 
   Future<ServiceModel> deleteServiceItem(String serviceId, String itemId) async {
     final endpoints = <String>[
+      '/service-items/$itemId',
       '/services/$serviceId/items/$itemId',
       '/services/$serviceId/delete-item/$itemId',
     ];

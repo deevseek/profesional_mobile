@@ -25,7 +25,7 @@ class ProductModel with _$ProductModel {
       'id': _asString(json['id']),
       'name': _asString(json['name'], fallback: '-'),
       'sku': _asString(json['sku']),
-      'category': _parseCategory(rawCategory),
+      'category': _parseCategory(rawCategory ?? json['category_id']),
       'stock': _asInt(json['stock']),
       'price': _asInt(json['price']),
       'description': _asString(json['description']),

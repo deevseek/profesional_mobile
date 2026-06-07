@@ -53,6 +53,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AppShellPage(),
       ),
       GoRoute(
+        path: '/services',
+        builder: (context, state) => const AppShellPage(),
+      ),
+      GoRoute(
         path: '/pos',
         builder: (context, state) => const AppShellPage(),
       ),

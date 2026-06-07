@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/services/data/models/service_item_model.dart';
@@ -720,6 +721,10 @@ class _WhatsAppNotificationSectionState extends ConsumerState<_WhatsAppNotificat
 
       final primaryLink = response.link.isNotEmpty ? response.link : response.webLink;
       await Clipboard.setData(ClipboardData(text: primaryLink));
+      final uri = Uri.tryParse(primaryLink);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
 
       if (!mounted) return;
       await showDialog<void>(

@@ -24,6 +24,7 @@ class ProductRepository {
         'page': page,
         if (search != null && search.isNotEmpty) 'search': search,
         if (category != null && category.isNotEmpty) 'category': category,
+        if (category != null && category.isNotEmpty) 'category_id': category,
       },
     );
 
@@ -54,9 +55,13 @@ class ProductRepository {
     return {
       'name': product.name,
       'sku': product.sku,
-      'category': product.category,
+      if (product.category.trim().isNotEmpty) 'category_id': product.category,
       'stock': product.stock,
       'price': product.price,
+      'cost_price': 0,
+      'avg_cost': 0,
+      'pricing_mode': 'manual',
+      'margin_percentage': 0,
       'description': product.description,
     };
   }

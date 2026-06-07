@@ -12,17 +12,25 @@ class SettingsRepository {
 
   final Dio _dio;
 
+  Future<StoreSettingsModel> getSettings() async {
+    final response = await _dio.get<Map<String, dynamic>>('/settings');
+    return StoreSettingsModel.fromJson(response.data ?? <String, dynamic>{});
+  }
+
   Future<void> upsertBatch(StoreSettingsModel settings) async {
     final payload = {
-      'settings': [
-        {'key': 'store_name', 'value': settings.storeName},
-        {'key': 'store_address', 'value': settings.address},
-        {'key': 'store_phone', 'value': settings.phone},
-        {'key': 'store_logo', 'value': settings.logo},
-        {'key': 'attendance_enabled', 'value': settings.attendanceEnabled},
-        {'key': 'attendance_require_selfie', 'value': settings.requireSelfie},
-        {'key': 'attendance_require_location', 'value': settings.requireLocation},
-      ],
+      'store_name': settings.storeName,
+      'store_address': settings.address,
+      'store_phone': settings.phone,
+      'store_hours': settings.storeHours,
+      'transaction_prefix': settings.transactionPrefix,
+      'transaction_padding': settings.transactionPadding,
+      'store_logo_path': settings.logo,
+      if (settings.latitude != null) 'store_latitude': settings.latitude,
+      if (settings.longitude != null) 'store_longitude': settings.longitude,
+      'attendance_enabled': settings.attendanceEnabled,
+      'attendance_require_selfie': settings.requireSelfie,
+      'attendance_require_location': settings.requireLocation,
     };
 
     await _dio.post('/settings', data: payload);
