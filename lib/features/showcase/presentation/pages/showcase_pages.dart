@@ -199,8 +199,6 @@ class _PosShowcasePageState extends ConsumerState<PosShowcasePage> {
     final notifier = ref.read(posProvider.notifier);
     final products = state.filteredProducts;
     final cartItems = state.cartItems;
-    debugPrint('products count: ${products.length}');
-    debugPrint('cart count: ${cartItems.length}');
     final isTablet = MediaQuery.sizeOf(context).width >= 760;
     final productPanel = ProCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

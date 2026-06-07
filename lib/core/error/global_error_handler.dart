@@ -35,7 +35,9 @@ class GlobalErrorHandler {
 
   static bool _isFrameworkLayoutError(String message) {
     return message.contains('RenderFlex overflowed') ||
-        message.contains('A RenderFlex overflowed');
+        message.contains('A RenderFlex overflowed') ||
+        message.contains('multiple heroes') ||
+        message.contains('default FloatingActionButton tag');
   }
 
   static void handleFlutterError(FlutterErrorDetails details) {
