@@ -13,7 +13,7 @@ class FinancePage extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () async => ref.invalidate(financeListProvider(null)),
       child: async.when(
-        loading: () => const ListView(padding: EdgeInsets.all(24), children: [Center(child: CircularProgressIndicator())]),
+        loading: () => ListView(padding: const EdgeInsets.all(24), children: const [Center(child: CircularProgressIndicator())]),
         error: (error, _) => ListView(padding: const EdgeInsets.all(24), children: [Text('Keuangan gagal dimuat', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8), Text(error.toString()), const SizedBox(height: 12), FilledButton.icon(onPressed: () => ref.invalidate(financeListProvider(null)), icon: const Icon(Icons.refresh), label: const Text('Coba lagi'))]),
         data: (data) => ListView(
           padding: const EdgeInsets.all(20),
