@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_preview_dialog.dart';
 import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 import 'package:profesionalservis_mobile/features/transaction/presentation/providers/transaction_provider.dart';
 
@@ -133,13 +134,28 @@ class _DateFilterRow extends ConsumerWidget {
   }
 }
 
-class _TransactionCard extends StatelessWidget {
+class _TransactionCard extends ConsumerWidget {
   const _TransactionCard({required this.transaction});
 
   final TransactionModel transaction;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> printReceipt() async {
+      try {
+        final detail = await ref.read(transactionDetailProvider(transaction.id).future);
+        if (context.mounted) {
+          await showTransactionReceipt(context, ref, detail);
+        }
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memuat detail transaksi: $error')),
+          );
+        }
+      }
+    }
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(16),
@@ -192,9 +208,39 @@ class _TransactionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                _money(transaction.total),
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _money(transaction.total),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 4,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => TransactionDetailPage(
+                                transactionId: transaction.id,
+                                fallbackTransaction: transaction,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.visibility_rounded, size: 16),
+                        label: const Text('Detail'),
+                      ),
+                      FilledButton.icon(
+                        onPressed: printReceipt,
+                        icon: const Icon(Icons.print_rounded, size: 16),
+                        label: const Text('Cetak'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
@@ -219,7 +265,21 @@ class TransactionDetailPage extends ConsumerWidget {
     final detailAsync = ref.watch(transactionDetailProvider(transactionId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail transaksi')),
+      appBar: AppBar(
+        title: const Text('Detail transaksi'),
+        actions: [
+          IconButton(
+            tooltip: 'Cetak Struk',
+            onPressed: () async {
+              final transaction = await ref.read(transactionDetailProvider(transactionId).future).catchError((_) => fallbackTransaction);
+              if (context.mounted) {
+                await showTransactionReceipt(context, ref, transaction);
+              }
+            },
+            icon: const Icon(Icons.print_rounded),
+          ),
+        ],
+      ),
       body: detailAsync.when(
         data: (transaction) => _DetailBody(transaction: transaction),
         loading: () => _DetailBody(transaction: fallbackTransaction, showLoading: true),
