@@ -5,13 +5,19 @@ class ReceiptPayloadModel {
   const ReceiptPayloadModel({
     required this.transaction,
     required this.store,
+    required this.warrantyTermLines,
+    required this.paymentMethodLabel,
   });
 
   final TransactionModel transaction;
-  final StoreReceiptModel store;
+  final ReceiptStoreModel store;
+  final List<String> warrantyTermLines;
+  final String paymentMethodLabel;
 
   factory ReceiptPayloadModel.fromJson(Map<String, dynamic> json) {
-    final data = unwrapDataMap(json);
+    final unwrapped = unwrapDataMap(json);
+    final receiptMap = parseMap(unwrapped['receipt']);
+    final data = receiptMap.isEmpty ? unwrapped : receiptMap;
     final transactionMap = parseMap(data['transaction']);
     final storeMap = parseMap(data['store']);
 
@@ -19,15 +25,42 @@ class ReceiptPayloadModel {
       throw const FormatException('Payload struk tidak memiliki data transaksi.');
     }
 
-    return ReceiptPayloadModel(
-      transaction: TransactionModel.fromJson(transactionMap),
-      store: StoreReceiptModel.fromJson(storeMap),
+    final transaction = TransactionModel.fromJson(transactionMap);
+    final paymentMethodLabel = parseString(
+      data['payment_method_label'] ?? data['paymentMethodLabel'] ?? data['payment_label'],
     );
+
+    return ReceiptPayloadModel(
+      transaction: transaction,
+      store: ReceiptStoreModel.fromJson(storeMap),
+      warrantyTermLines: _parseStringList(
+        data['warranty_term_lines'] ?? data['warrantyTermLines'] ?? data['warranty_terms'] ?? data['warranty'],
+      ),
+      paymentMethodLabel: paymentMethodLabel.isEmpty ? _fallbackPaymentMethodLabel(transaction.paymentMethod) : paymentMethodLabel,
+    );
+  }
+
+  static List<String> _parseStringList(dynamic value) {
+    if (value is List) {
+      return value.map(parseString).where((entry) => entry.isNotEmpty).toList(growable: false);
+    }
+    final text = parseString(value);
+    if (text.isEmpty) return const <String>[];
+    return text
+        .split(RegExp(r'[\n]+'))
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static String _fallbackPaymentMethodLabel(String value) {
+    final normalized = value.trim().replaceAll('-', ' ');
+    return normalized.isEmpty ? '-' : normalized.toUpperCase();
   }
 }
 
-class StoreReceiptModel {
-  const StoreReceiptModel({
+class ReceiptStoreModel {
+  const ReceiptStoreModel({
     required this.name,
     required this.address,
     required this.phone,
@@ -36,6 +69,7 @@ class StoreReceiptModel {
     required this.npwpNumber,
     required this.hours,
     required this.logo,
+    required this.logoUrl,
   });
 
   final String name;
@@ -46,14 +80,18 @@ class StoreReceiptModel {
   final String npwpNumber;
   final String hours;
   final String logo;
+  final String logoUrl;
 
-  factory StoreReceiptModel.fromJson(Map<String, dynamic> json) {
+  String get effectiveLogoUrl => logoUrl.trim().isNotEmpty ? logoUrl.trim() : logo.trim();
+
+  factory ReceiptStoreModel.fromJson(Map<String, dynamic> json) {
     final bankAccountNumber = parseString(
       json['bank_account_number'] ?? json['bankAccountNumber'] ?? json['bank_account'] ?? json['rekening'],
     );
     final bankAccountNumbers = _parseBankAccountNumbers(json['bank_account_numbers'] ?? json['bankAccountNumbers']);
 
-    return StoreReceiptModel(
+    final logo = parseString(json['logo'] ?? json['store_logo'] ?? json['store_logo_path']);
+    return ReceiptStoreModel(
       name: parseString(json['name'] ?? json['store_name'], fallback: 'PROFESIONAL SERVIS'),
       address: parseString(json['address'] ?? json['store_address'], fallback: '-'),
       phone: parseString(json['phone'] ?? json['store_phone'], fallback: '-'),
@@ -63,7 +101,8 @@ class StoreReceiptModel {
           : bankAccountNumbers,
       npwpNumber: parseString(json['npwp_number'] ?? json['npwp'] ?? json['store_npwp']),
       hours: parseString(json['hours'] ?? json['store_hours']),
-      logo: parseString(json['logo'] ?? json['store_logo'] ?? json['store_logo_path']),
+      logo: logo,
+      logoUrl: parseString(json['logo_url'] ?? json['logoUrl'] ?? json['store_logo_url'], fallback: logo),
     );
   }
 
@@ -91,3 +130,5 @@ class StoreReceiptModel {
         .toList(growable: false);
   }
 }
+
+typedef StoreReceiptModel = ReceiptStoreModel;
