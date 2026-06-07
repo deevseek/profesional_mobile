@@ -8,7 +8,7 @@ import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summ
 import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
-import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_preview_dialog.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_url_launcher.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
 import 'package:profesionalservis_mobile/features/settings/presentation/pages/settings_page.dart';
@@ -733,13 +733,13 @@ Future<void> _reprintLastReceipt(
   WidgetRef ref, {
   String emptyMessage = 'Selesaikan pembayaran terlebih dahulu.',
 }) async {
-  final transaction = ref.read(posProvider).lastPaidTransaction;
-  final transactionId = int.tryParse(transaction?.id ?? '');
+  final state = ref.read(posProvider);
+  final transactionId = state.lastTransactionId ?? int.tryParse(state.lastPaidTransaction?.id ?? '');
   if (transactionId == null || transactionId <= 0) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(emptyMessage)));
     return;
   }
-  await showTransactionReceipt(context, ref, transactionId);
+  await openPosReceiptUrl(context, ref, transactionId);
 }
 
 Future<void> _processCheckout({
@@ -764,9 +764,9 @@ Future<void> _processCheckout({
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(after.errorMessage ?? 'Transaksi gagal.')));
     return;
   }
-  final receiptPayload = after.lastReceiptPayload;
-  if (receiptPayload != null) {
-    await showReceiptPreview(context, receiptPayload);
+  final transactionId = after.lastTransactionId ?? int.tryParse(after.lastPaidTransaction?.id ?? '');
+  if (transactionId != null && transactionId > 0) {
+    await openPosReceiptUrl(context, ref, transactionId);
   }
 }
 

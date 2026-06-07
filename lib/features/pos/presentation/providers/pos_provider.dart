@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/core/network/api_exception.dart';
 import 'package:profesionalservis_mobile/features/customer/data/models/customer_model.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.dart';
-import 'package:profesionalservis_mobile/features/pos/data/models/receipt_payload_model.dart';
-import 'package:profesionalservis_mobile/features/pos/data/repositories/receipt_repository.dart';
 import 'package:profesionalservis_mobile/features/pos/data/repositories/transaction_repository.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/product/data/repositories/product_repository.dart';
@@ -17,7 +15,6 @@ final posProvider = StateNotifierProvider<PosNotifier, PosState>((ref) {
   final notifier = PosNotifier(
     productRepository: ref.watch(productRepositoryProvider),
     transactionRepository: ref.watch(transactionRepositoryProvider),
-    receiptRepository: ref.watch(receiptRepositoryProvider),
   );
   notifier.loadProducts();
   ref.onDispose(notifier.dispose);
@@ -105,7 +102,7 @@ class PosState {
     this.lastHoldNumber,
     this.checkoutResult,
     this.lastPaidTransaction,
-    this.lastReceiptPayload,
+    this.lastTransactionId,
   });
 
   final List<ProductModel> products;
@@ -126,7 +123,7 @@ class PosState {
   final String? lastHoldNumber;
   final PosCheckoutResult? checkoutResult;
   final TransactionModel? lastPaidTransaction;
-  final ReceiptPayloadModel? lastReceiptPayload;
+  final int? lastTransactionId;
 
   // Backward-compatible aliases for older widgets in this repository.
   Map<String, List<PosCartItem>> get heldCarts => {
@@ -173,8 +170,8 @@ class PosState {
     bool clearCheckoutResult = false,
     TransactionModel? lastPaidTransaction,
     bool clearLastPaidTransaction = false,
-    ReceiptPayloadModel? lastReceiptPayload,
-    bool clearLastReceiptPayload = false,
+    int? lastTransactionId,
+    bool clearLastTransactionId = false,
   }) {
     return PosState(
       products: products ?? this.products,
@@ -195,7 +192,7 @@ class PosState {
       lastHoldNumber: clearLastHoldNumber ? null : (lastHoldNumber ?? this.lastHoldNumber),
       checkoutResult: clearCheckoutResult ? null : (checkoutResult ?? this.checkoutResult),
       lastPaidTransaction: clearLastPaidTransaction ? null : (lastPaidTransaction ?? this.lastPaidTransaction),
-      lastReceiptPayload: clearLastReceiptPayload ? null : (lastReceiptPayload ?? this.lastReceiptPayload),
+      lastTransactionId: clearLastTransactionId ? null : (lastTransactionId ?? this.lastTransactionId),
     );
   }
 
@@ -209,15 +206,12 @@ class PosNotifier extends StateNotifier<PosState> {
   PosNotifier({
     required ProductRepository productRepository,
     required TransactionRepository transactionRepository,
-    required ReceiptRepository receiptRepository,
   })  : _productRepository = productRepository,
         _transactionRepository = transactionRepository,
-        _receiptRepository = receiptRepository,
         super(const PosState());
 
   final ProductRepository _productRepository;
   final TransactionRepository _transactionRepository;
-  final ReceiptRepository _receiptRepository;
   Timer? _debounce;
 
   @override
@@ -501,27 +495,24 @@ class PosNotifier extends StateNotifier<PosState> {
       if (transactionId == null || transactionId <= 0) {
         throw const FormatException('ID transaksi untuk struk tidak valid.');
       }
-      final receiptPayload = await _receiptRepository.getTransactionReceipt(transactionId);
-      final receiptTransaction = receiptPayload.transaction;
-
       state = state.copyWith(
         isSubmitting: false,
         checkoutResult: PosCheckoutResult(
-          invoice: receiptTransaction.invoiceNumber.isEmpty ? 'AUTO' : receiptTransaction.invoiceNumber,
-          subtotal: receiptTransaction.subtotal,
-          discount: receiptTransaction.discount,
-          taxPercent: receiptTransaction.taxRate,
-          taxAmount: receiptTransaction.taxAmount,
-          total: receiptTransaction.total,
-          paidAmount: receiptTransaction.paidAmount,
-          change: receiptTransaction.changeAmount,
+          invoice: transaction.invoiceNumber.isEmpty ? 'AUTO' : transaction.invoiceNumber,
+          subtotal: transaction.subtotal,
+          discount: transaction.discount,
+          taxPercent: transaction.taxRate,
+          taxAmount: transaction.taxAmount,
+          total: transaction.total,
+          paidAmount: transaction.paidAmount,
+          change: transaction.changeAmount,
           paymentMethod: methodSnapshot,
           items: itemsSnapshot,
-          createdAt: receiptTransaction.createdAt,
+          createdAt: transaction.createdAt,
           raw: const <String, dynamic>{},
         ),
-        lastPaidTransaction: receiptTransaction,
-        lastReceiptPayload: receiptPayload,
+        lastPaidTransaction: transaction,
+        lastTransactionId: transactionId,
         cartItems: const [],
         paidAmount: 0,
         discountAmount: 0,

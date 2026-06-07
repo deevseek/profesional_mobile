@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/receipt_payload_model.dart';
-import 'package:profesionalservis_mobile/features/pos/data/repositories/receipt_repository.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_url_launcher.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_document_builder.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_format_selector.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_pdf_service.dart';
@@ -15,16 +15,8 @@ Future<void> showReceiptPreview(BuildContext context, ReceiptPayloadModel payloa
   );
 }
 
-Future<void> showTransactionReceipt(BuildContext context, WidgetRef ref, int transactionId) async {
-  try {
-    final payload = await ref.read(receiptRepositoryProvider).getTransactionReceipt(transactionId);
-    if (context.mounted) {
-      await showReceiptPreview(context, payload);
-    }
-  } catch (error) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal memuat struk transaksi: $error')));
-  }
+Future<void> showTransactionReceipt(BuildContext context, WidgetRef ref, int transactionId) {
+  return openPosReceiptUrl(context, ref, transactionId);
 }
 
 class ReceiptPreviewDialog extends ConsumerStatefulWidget {

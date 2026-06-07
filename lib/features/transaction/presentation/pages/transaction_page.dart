@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_preview_dialog.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_url_launcher.dart';
 import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 import 'package:profesionalservis_mobile/features/transaction/presentation/providers/transaction_provider.dart';
 
@@ -147,7 +147,7 @@ class _TransactionCard extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID transaksi tidak valid.')));
         return;
       }
-      await showTransactionReceipt(context, ref, transactionId);
+      await openPosReceiptUrl(context, ref, transactionId);
     }
 
     return Material(
@@ -270,7 +270,7 @@ class TransactionDetailPage extends ConsumerWidget {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ID transaksi tidak valid.')));
                 return;
               }
-              await showTransactionReceipt(context, ref, parsedId);
+              await openPosReceiptUrl(context, ref, parsedId);
             },
             icon: const Icon(Icons.print_rounded),
           ),
