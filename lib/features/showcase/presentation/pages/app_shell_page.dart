@@ -77,6 +77,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'global_quick_action_fab',
         onPressed: () => _showQuickActions(context),
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,

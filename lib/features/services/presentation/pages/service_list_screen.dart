@@ -48,6 +48,7 @@ class _ServiceListScreenState extends ConsumerState<ServiceListScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'service_add_fab',
         onPressed: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const CreateServiceScreen()),

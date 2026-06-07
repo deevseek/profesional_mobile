@@ -14,6 +14,7 @@ class CustomerPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'customer_add_fab',
         onPressed: state.isSubmitting
             ? null
             : () => _showCustomerForm(context: context, ref: ref),
