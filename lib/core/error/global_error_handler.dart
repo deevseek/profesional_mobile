@@ -10,12 +10,13 @@ final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 class GlobalErrorHandler {
   static void initialize() {
     FlutterError.onError = (details) {
-      FlutterError.presentError(details);
-      handleFlutterError(details);
-
       if (_isFrameworkLayoutError(details.exceptionAsString())) {
+        FlutterError.presentError(details);
         return;
       }
+
+      FlutterError.presentError(details);
+      handleFlutterError(details);
 
       showErrorSnackbar(
         kReleaseMode

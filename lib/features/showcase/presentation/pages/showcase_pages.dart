@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/core/responsive/breakpoints.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'package:profesionalservis_mobile/features/app_config/presentation/providers/app_config_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
@@ -190,7 +192,26 @@ class _PosShowcasePageState extends ConsumerState<PosShowcasePage> {
   @override
   void initState() {
     super.initState();
-    debugPrint('POS page loaded');
+    ref.listenManual<PosState>(posProvider, _handlePosMessages);
+  }
+
+  void _handlePosMessages(PosState? previous, PosState next) {
+    final messenger = ScaffoldMessenger.of(context);
+    final notifier = ref.read(posProvider.notifier);
+
+    if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+      messenger.showSnackBar(SnackBar(content: Text(next.errorMessage!)));
+      notifier.consumeMessages();
+    }
+
+    if (next.successMessage != null && next.successMessage != previous?.successMessage) {
+      messenger.showSnackBar(SnackBar(content: Text(next.successMessage!)));
+      notifier.consumeMessages();
+    }
+
+    if (next.checkoutResult != null && next.checkoutResult != previous?.checkoutResult) {
+      _showReceiptDialog(context, next.checkoutResult!);
+    }
   }
 
   @override
@@ -248,9 +269,21 @@ class _PosShowcasePageState extends ConsumerState<PosShowcasePage> {
                     context: context,
                     isScrollControlled: true,
                     useSafeArea: true,
-                    builder: (_) => SizedBox(
-                      height: MediaQuery.sizeOf(context).height * .82,
-                      child: Padding(padding: const EdgeInsets.all(16), child: cart),
+                    builder: (sheetContext) => Consumer(
+                      builder: (context, ref, _) => DraggableScrollableSheet(
+                        expand: false,
+                        initialChildSize: .82,
+                        minChildSize: .45,
+                        maxChildSize: .95,
+                        builder: (_, scrollController) => Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(sheetContext).viewInsets.bottom + 16),
+                          child: CartCheckoutPanel(
+                            state: ref.watch(posProvider),
+                            notifier: ref.read(posProvider.notifier),
+                            scrollController: scrollController,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   icon: const Icon(Icons.shopping_bag_outlined),
@@ -414,53 +447,181 @@ class ServiceDetailPanel extends StatelessWidget {
   }
 }
 
-class CartCheckoutPanel extends StatelessWidget {
-  const CartCheckoutPanel({super.key, required this.state, required this.notifier});
+class CartCheckoutPanel extends ConsumerWidget {
+  const CartCheckoutPanel({
+    super.key,
+    required this.state,
+    required this.notifier,
+    this.scrollController,
+  });
+
+  final PosState state;
+  final PosNotifier notifier;
+  final ScrollController? scrollController;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ProCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Expanded(child: SectionHeader(title: 'Keranjang', subtitle: 'Qty, diskon, pajak, pembayaran')),
+          if (state.holdOrders.isNotEmpty) _HoldOrdersButton(state: state, notifier: notifier),
+        ]),
+        const SizedBox(height: 12),
+        Expanded(
+          child: ListView(
+            controller: scrollController,
+            children: [
+              if (state.cartItems.isEmpty)
+                const EmptyStatePanel(icon: Icons.shopping_cart_outlined, title: 'Keranjang masih kosong', message: 'Pilih produk untuk memulai transaksi.')
+              else
+                ...state.cartItems.map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(18)),
+                        child: Row(children: [
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.product.name.trim().isEmpty ? '-' : item.product.name, style: const TextStyle(fontWeight: FontWeight.w900)), Text('Qty ${item.quantity} · Diskon ${_money(item.discount)}', style: const TextStyle(color: AppColors.slate))])),
+                          IconButton(onPressed: () => notifier.updateQuantity(productId: item.product.id, quantity: item.quantity - 1), icon: const Icon(Icons.remove_circle_outline)),
+                          IconButton(onPressed: () => notifier.updateQuantity(productId: item.product.id, quantity: item.quantity + 1), icon: const Icon(Icons.add_circle_outline)),
+                          Flexible(child: Text(_money(item.lineTotal), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900))),
+                        ]),
+                      ),
+                    )),
+              Row(children: [const Text('Pajak'), Expanded(child: Slider(min: 0, max: 15, divisions: 15, value: state.taxPercent.clamp(0, 15).toDouble(), label: '${state.taxPercent.round()}%', onChanged: notifier.setTaxPercent)), Text('${state.taxPercent.round()}%')]),
+              _SummaryLine(label: 'Cabang', value: state.selectedBranch.trim().isEmpty ? 'Cabang Pusat' : state.selectedBranch),
+              _SummaryLine(label: 'Pembayaran', value: state.selectedPaymentMethod.label),
+              _SummaryLine(label: 'Subtotal', value: _money(state.subtotal)),
+              _SummaryLine(label: 'Diskon', value: _money(state.discount)),
+              _SummaryLine(label: 'Pajak', value: _money(state.taxAmount)),
+              _SummaryLine(label: 'Total', value: _money(state.total), strong: true),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _PaymentChip(label: 'Tunai', method: PosPaymentMethod.cash, state: state, notifier: notifier),
+                  _PaymentChip(label: 'Transfer', method: PosPaymentMethod.transfer, state: state, notifier: notifier),
+                  _PaymentChip(label: 'QRIS', method: PosPaymentMethod.eWallet, state: state, notifier: notifier),
+                  Tooltip(message: 'Debit belum tersedia di backend, dikirim sebagai transfer.', child: _PaymentChip(label: 'Debit', method: PosPaymentMethod.transfer, state: state, notifier: notifier)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: ValueKey('paid-${state.selectedPaymentMethod}-${state.effectivePaidAmount}'),
+                initialValue: state.effectivePaidAmount == 0 ? '' : state.effectivePaidAmount.toString(),
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: 'Nominal bayar', helperText: state.selectedPaymentMethod == PosPaymentMethod.cash ? 'Wajib minimal total.' : 'Transfer/QRIS otomatis sebesar total jika kosong.'),
+                onChanged: (value) => notifier.setPaidAmount(int.tryParse(value.trim()) ?? 0),
+              ),
+              if (state.selectedPaymentMethod == PosPaymentMethod.cash) Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(spacing: 8, runSpacing: 8, children: [state.total, state.total + 50000, state.total + 100000].where((v) => v > 0).map((value) => ActionChip(label: Text(_money(value)), onPressed: () => notifier.setPaidAmount(value))).toList()),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          OutlinedButton.icon(onPressed: state.cartItems.isEmpty ? null : notifier.holdCart, icon: const Icon(Icons.pause_circle_outline), label: const Text('Hold')),
+          FilledButton.icon(onPressed: state.cartItems.isEmpty || state.isSubmitting ? null : () async {
+            final ok = await notifier.checkout();
+            if (ok && context.mounted && Navigator.of(context).canPop()) Navigator.of(context).pop();
+          }, icon: state.isSubmitting ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.payments_outlined), label: const Text('Bayar')),
+          OutlinedButton.icon(onPressed: state.checkoutResult == null ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selesaikan pembayaran terlebih dahulu.'))) : () => _showReceiptDialog(context, state.checkoutResult!), icon: const Icon(Icons.print_outlined), label: const Text('Cetak Struk')),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _PaymentChip extends StatelessWidget {
+  const _PaymentChip({required this.label, required this.method, required this.state, required this.notifier});
+
+  final String label;
+  final PosPaymentMethod method;
   final PosState state;
   final PosNotifier notifier;
 
   @override
   Widget build(BuildContext context) {
-    return ProCard(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SectionHeader(title: 'Keranjang', subtitle: 'Qty, diskon, pajak, pembayaran'),
-        const SizedBox(height: 12),
-        Expanded(
-          child: state.cartItems.isEmpty
-              ? const EmptyStatePanel(icon: Icons.shopping_cart_outlined, title: 'Keranjang masih kosong', message: 'Pilih produk untuk memulai transaksi.')
-              : ListView.separated(
-                  itemCount: state.cartItems.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final item = state.cartItems[index];
-                    return Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: AppColors.backgroundLight, borderRadius: BorderRadius.circular(18)),
-                      child: Row(children: [
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(item.product.name.trim().isEmpty ? '-' : item.product.name, style: const TextStyle(fontWeight: FontWeight.w900)), Text('Qty ${item.quantity} · Diskon ${_money(item.discount)}', style: const TextStyle(color: AppColors.slate))])),
-                        IconButton(onPressed: () => notifier.updateQuantity(productId: item.product.id, quantity: item.quantity - 1), icon: const Icon(Icons.remove_circle_outline)),
-                        IconButton(onPressed: () => notifier.updateQuantity(productId: item.product.id, quantity: item.quantity + 1), icon: const Icon(Icons.add_circle_outline)),
-                        Text(_money(item.lineTotal), style: const TextStyle(fontWeight: FontWeight.w900)),
-                      ]),
-                    );
-                  },
-                ),
-        ),
-        Row(children: [const Text('Pajak'), Expanded(child: Slider(min: 0, max: 20, divisions: 20, value: state.taxPercent.toDouble(), onChanged: (v) => notifier.setTaxPercent(v.round()))), Text('${state.taxPercent}%')]),
-        _SummaryLine(label: 'Cabang', value: state.selectedBranch.trim().isEmpty ? 'Cabang Pusat' : state.selectedBranch),
-        _SummaryLine(label: 'Pembayaran', value: state.selectedPaymentMethod.trim().isEmpty ? 'Tunai' : state.selectedPaymentMethod),
-        _SummaryLine(label: 'Subtotal', value: _money(state.subtotal)),
-        _SummaryLine(label: 'Pajak', value: _money(state.taxAmount)),
-        _SummaryLine(label: 'Total', value: _money(state.total), strong: true),
-        const SizedBox(height: 10),
-        Wrap(spacing: 8, children: const ['Tunai', 'Transfer', 'QRIS', 'Debit'].map((m) => ChoiceChip(selected: m == 'Tunai', label: Text(m))).toList()),
-        const SizedBox(height: 12),
-        Row(children: [Expanded(child: OutlinedButton.icon(onPressed: state.cartItems.isEmpty ? null : notifier.holdCart, icon: const Icon(Icons.pause_circle_outline), label: const Text('Hold'))), const SizedBox(width: 8), Expanded(child: FilledButton.icon(onPressed: state.cartItems.isEmpty ? null : () => notifier.checkout(paidAmount: state.total), icon: const Icon(Icons.payments_outlined), label: const Text('Bayar')))]),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.print_outlined), label: const Text('Cetak Struk')),
-      ]),
+    return ChoiceChip(
+      selected: state.selectedPaymentMethod == method,
+      label: Text(label),
+      onSelected: (_) => notifier.setPaymentMethod(method),
     );
   }
+}
+
+class _HoldOrdersButton extends StatelessWidget {
+  const _HoldOrdersButton({required this.state, required this.notifier});
+
+  final PosState state;
+  final PosNotifier notifier;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Order Hold',
+      icon: const Icon(Icons.pause_presentation_rounded),
+      onSelected: notifier.resumeCart,
+      itemBuilder: (context) => state.holdOrders.map((order) => PopupMenuItem(value: order.holdNumber, child: Text('${order.holdNumber} · ${order.totalItems} item · ${_money(order.subtotal)}'))).toList(),
+    );
+  }
+}
+
+Future<void> _showReceiptDialog(BuildContext context, PosCheckoutResult result) async {
+  await showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Struk ${result.invoice}'),
+      content: SizedBox(
+        width: 360,
+        child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            const Center(child: Text('Profesional Servis', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18))),
+            Center(child: Text(result.createdAt.toIso8601String().split('.').first)),
+            const Divider(),
+            _SummaryLine(label: 'Invoice', value: result.invoice),
+            _SummaryLine(label: 'Metode', value: result.paymentMethod.label),
+            const Divider(),
+            ...result.items.map((item) => _SummaryLine(label: '${item.product.name} x${item.quantity}', value: _money(item.lineTotal))),
+            const Divider(),
+            _SummaryLine(label: 'Subtotal', value: _money(result.subtotal)),
+            _SummaryLine(label: 'Diskon', value: _money(result.discount)),
+            _SummaryLine(label: 'Pajak ${result.taxPercent.round()}%', value: _money(result.taxAmount)),
+            _SummaryLine(label: 'Total', value: _money(result.total), strong: true),
+            _SummaryLine(label: 'Dibayar', value: _money(result.paidAmount)),
+            _SummaryLine(label: 'Kembali', value: _money(result.change)),
+          ]),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Tutup')),
+        FilledButton.icon(onPressed: () async => _printReceipt(result), icon: const Icon(Icons.print_outlined), label: const Text('Print')),
+      ],
+    ),
+  );
+}
+
+Future<void> _printReceipt(PosCheckoutResult result) async {
+  final doc = pw.Document();
+  doc.addPage(pw.Page(build: (_) => pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Center(child: pw.Text('Profesional Servis', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18))),
+        pw.Text('Invoice: ${result.invoice}'),
+        pw.Text('Tanggal: ${result.createdAt.toIso8601String().split('.').first}'),
+        pw.SizedBox(height: 12),
+        ...result.items.map((item) => pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Expanded(child: pw.Text('${item.product.name} x${item.quantity}')), pw.Text(_money(item.lineTotal))])),
+        pw.Divider(),
+        pw.Text('Subtotal: ${_money(result.subtotal)}'),
+        pw.Text('Diskon: ${_money(result.discount)}'),
+        pw.Text('Pajak: ${_money(result.taxAmount)}'),
+        pw.Text('Total: ${_money(result.total)}'),
+        pw.Text('Metode: ${result.paymentMethod.label}'),
+        pw.Text('Dibayar: ${_money(result.paidAmount)}'),
+        pw.Text('Kembali: ${_money(result.change)}'),
+      ]));
+  await Printing.layoutPdf(onLayout: (_) async => doc.save());
 }
 
 class ProductCard extends StatelessWidget {
@@ -602,7 +763,7 @@ class _SummaryLine extends StatelessWidget {
   final String label, value;
   final bool strong;
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [Text(label, style: TextStyle(fontWeight: strong ? FontWeight.w900 : FontWeight.w700)), const Spacer(), Text(value, style: TextStyle(fontWeight: strong ? FontWeight.w900 : FontWeight.w700, fontSize: strong ? 18 : 14))]));
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.symmetric(vertical: 3), child: Row(children: [Expanded(child: Text(label, style: TextStyle(fontWeight: strong ? FontWeight.w900 : FontWeight.w700))), const SizedBox(width: 8), Flexible(child: Text(value, textAlign: TextAlign.end, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: strong ? FontWeight.w900 : FontWeight.w700, fontSize: strong ? 18 : 14)))]));
 }
 
 void _showCreateServiceSheet(BuildContext context) {
