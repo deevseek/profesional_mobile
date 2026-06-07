@@ -19,21 +19,21 @@ class TenantGuard {
     }
 
     if (!tenantState.hasTenant) {
-      if (location != '/tenant') {
+      if (location != '/tenant' && location != '/splash') {
         return '/tenant';
       }
       return null;
     }
 
     if (!authState.isAuthenticated) {
-      if (location != '/login') {
+      if (location != '/login' && location != '/splash') {
         return '/login';
       }
       return null;
     }
 
-    if (location == '/login' || location == '/tenant' || location == '/splash') {
-      return '/pos';
+    if (location == '/login' || location == '/tenant') {
+      return '/home';
     }
 
     return null;
