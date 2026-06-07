@@ -9,6 +9,7 @@ import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.
 import 'package:profesionalservis_mobile/features/pos/data/repositories/transaction_repository.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/product/data/repositories/product_repository.dart';
+import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 
 final posProvider = StateNotifierProvider<PosNotifier, PosState>((ref) {
   final notifier = PosNotifier(
@@ -100,6 +101,7 @@ class PosState {
     this.successMessage,
     this.lastHoldNumber,
     this.checkoutResult,
+    this.lastPaidTransaction,
   });
 
   final List<ProductModel> products;
@@ -119,6 +121,7 @@ class PosState {
   final String? successMessage;
   final String? lastHoldNumber;
   final PosCheckoutResult? checkoutResult;
+  final TransactionModel? lastPaidTransaction;
 
   // Backward-compatible aliases for older widgets in this repository.
   Map<String, List<PosCartItem>> get heldCarts => {
@@ -163,6 +166,8 @@ class PosState {
     bool clearLastHoldNumber = false,
     PosCheckoutResult? checkoutResult,
     bool clearCheckoutResult = false,
+    TransactionModel? lastPaidTransaction,
+    bool clearLastPaidTransaction = false,
   }) {
     return PosState(
       products: products ?? this.products,
@@ -182,6 +187,7 @@ class PosState {
       successMessage: clearSuccessMessage ? null : (successMessage ?? this.successMessage),
       lastHoldNumber: clearLastHoldNumber ? null : (lastHoldNumber ?? this.lastHoldNumber),
       checkoutResult: clearCheckoutResult ? null : (checkoutResult ?? this.checkoutResult),
+      lastPaidTransaction: clearLastPaidTransaction ? null : (lastPaidTransaction ?? this.lastPaidTransaction),
     );
   }
 
@@ -329,10 +335,10 @@ class PosNotifier extends StateNotifier<PosState> {
   }
 
   void setPaymentMethod(PosPaymentMethod method) {
-    final paidAmount = method == PosPaymentMethod.cash ? state.paidAmount : state.total.toDouble();
+    final shouldAutoFill = method != PosPaymentMethod.cash || state.paidAmount <= 0;
     state = state.copyWith(
       selectedPaymentMethod: method,
-      paidAmount: paidAmount,
+      paidAmount: shouldAutoFill ? state.total.toDouble() : state.paidAmount,
       clearCheckoutResult: true,
     );
   }
@@ -463,8 +469,6 @@ class PosNotifier extends StateNotifier<PosState> {
     final itemsSnapshot = [...state.cartItems];
     final subtotalSnapshot = state.subtotal;
     final discountSnapshot = state.discount;
-    final taxPercentSnapshot = state.taxPercent;
-    final taxAmountSnapshot = state.taxAmount;
     final totalSnapshot = state.total;
     final methodSnapshot = state.selectedPaymentMethod;
 
@@ -476,32 +480,45 @@ class PosNotifier extends StateNotifier<PosState> {
     );
 
     try {
-      final result = await _transactionRepository.createTransaction(
+      // TODO: Backend transactions API needs tax_rate/tax_amount support.
+      final transaction = await _transactionRepository.createTransaction(
         items: itemsSnapshot,
         paidAmount: amountPaid,
         paymentMethod: methodSnapshot.apiValue,
         customerId: int.tryParse(state.selectedCustomer?.id ?? ''),
         discount: discountSnapshot,
       );
+      final receiptTransaction = _normalizeReceiptTransaction(
+        transaction: transaction,
+        items: itemsSnapshot,
+        amountPaid: amountPaid,
+        method: methodSnapshot,
+        subtotal: subtotalSnapshot,
+        discount: discountSnapshot,
+        total: totalSnapshot,
+      );
 
       state = state.copyWith(
         isSubmitting: false,
         checkoutResult: PosCheckoutResult(
-          invoice: result.invoice.isEmpty ? 'AUTO' : result.invoice,
-          subtotal: result.subtotal == 0 ? subtotalSnapshot : result.subtotal,
-          discount: discountSnapshot,
-          taxPercent: taxPercentSnapshot,
-          taxAmount: taxAmountSnapshot,
-          total: result.total == 0 ? totalSnapshot : result.total,
-          paidAmount: amountPaid,
-          change: result.change == 0 ? max(amountPaid - totalSnapshot, 0) : result.change,
+          invoice: receiptTransaction.invoiceNumber.isEmpty ? 'AUTO' : receiptTransaction.invoiceNumber,
+          subtotal: receiptTransaction.subtotal,
+          discount: receiptTransaction.discount,
+          taxPercent: receiptTransaction.taxRate,
+          taxAmount: receiptTransaction.taxAmount,
+          total: receiptTransaction.total,
+          paidAmount: receiptTransaction.paidAmount,
+          change: receiptTransaction.changeAmount,
           paymentMethod: methodSnapshot,
           items: itemsSnapshot,
-          createdAt: DateTime.now(),
-          raw: result.raw,
+          createdAt: receiptTransaction.createdAt,
+          raw: const <String, dynamic>{},
         ),
+        lastPaidTransaction: receiptTransaction,
         cartItems: const [],
         paidAmount: 0,
+        discountAmount: 0,
+        taxPercent: 0,
         successMessage: 'Transaksi berhasil.',
       );
       await loadProducts();
@@ -513,6 +530,67 @@ class PosNotifier extends StateNotifier<PosState> {
       );
       return false;
     }
+  }
+
+
+  TransactionModel _normalizeReceiptTransaction({
+    required TransactionModel transaction,
+    required List<PosCartItem> items,
+    required int amountPaid,
+    required PosPaymentMethod method,
+    required int subtotal,
+    required int discount,
+    required int total,
+  }) {
+    final normalizedItems = transaction.items.isNotEmpty
+        ? transaction.items
+        : items
+            .map(
+              (item) => TransactionItemModel(
+                id: '',
+                transactionId: transaction.id,
+                productId: item.product.id,
+                name: item.product.name.trim().isEmpty ? '-' : item.product.name,
+                quantity: item.quantity,
+                price: item.product.price,
+                discount: item.discount,
+                hpp: item.hpp,
+                subtotalHpp: item.hpp * item.quantity,
+                lineTotal: item.lineTotal,
+                product: TransactionProductModel(
+                  id: item.product.id,
+                  name: item.product.name.trim().isEmpty ? '-' : item.product.name,
+                  warrantyDays: 0,
+                  costPrice: item.hpp,
+                  avgCost: item.hpp,
+                  price: item.product.price,
+                ),
+              ),
+            )
+            .toList(growable: false);
+    final normalizedTotal = transaction.total > 0 ? transaction.total : total;
+    final normalizedPaid = transaction.paidAmount > 0 ? transaction.paidAmount : amountPaid;
+
+    return TransactionModel(
+      id: transaction.id,
+      invoiceNumber: transaction.invoiceNumber,
+      customerId: transaction.customerId,
+      customerName: transaction.customerName,
+      date: transaction.date,
+      status: transaction.status,
+      subtotal: transaction.subtotal > 0 ? transaction.subtotal : subtotal,
+      discount: transaction.discount > 0 ? transaction.discount : discount,
+      taxRate: transaction.taxRate,
+      taxAmount: transaction.taxAmount,
+      total: normalizedTotal,
+      paymentMethod: transaction.paymentMethod.trim().isEmpty ? method.apiValue : transaction.paymentMethod,
+      paidAmount: normalizedPaid,
+      changeAmount: transaction.changeAmount > 0 ? transaction.changeAmount : max(normalizedPaid - normalizedTotal, 0),
+      createdAt: transaction.createdAt,
+      updatedAt: transaction.updatedAt,
+      customer: transaction.customer,
+      items: normalizedItems,
+    );
   }
 
   String _friendlyCheckoutError(Object error) {

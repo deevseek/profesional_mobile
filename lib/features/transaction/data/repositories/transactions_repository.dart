@@ -20,6 +20,7 @@ class TransactionsRepository {
     final response = await _dio.get<Map<String, dynamic>>(
       '/transactions',
       queryParameters: {
+        'per_page': 20,
         if (startDate != null) 'from': _yyyyMmDd(startDate),
         if (endDate != null) 'to': _yyyyMmDd(endDate),
         if (search.trim().isNotEmpty) 'search': search.trim(),

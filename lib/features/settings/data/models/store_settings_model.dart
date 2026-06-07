@@ -14,6 +14,9 @@ class StoreSettingsModel {
     this.transactionPadding = 0,
     this.latitude,
     this.longitude,
+    this.bankAccount = '',
+    this.npwp = '',
+    this.warrantyTerms = '',
   });
 
   final String storeName;
@@ -28,6 +31,9 @@ class StoreSettingsModel {
   final int transactionPadding;
   final double? latitude;
   final double? longitude;
+  final String bankAccount;
+  final String npwp;
+  final String warrantyTerms;
 
   StoreSettingsModel copyWith({
     String? storeName,
@@ -42,6 +48,9 @@ class StoreSettingsModel {
     int? transactionPadding,
     double? latitude,
     double? longitude,
+    String? bankAccount,
+    String? npwp,
+    String? warrantyTerms,
   }) {
     return StoreSettingsModel(
       storeName: storeName ?? this.storeName,
@@ -56,6 +65,9 @@ class StoreSettingsModel {
       transactionPadding: transactionPadding ?? this.transactionPadding,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      bankAccount: bankAccount ?? this.bankAccount,
+      npwp: npwp ?? this.npwp,
+      warrantyTerms: warrantyTerms ?? this.warrantyTerms,
     );
   }
 
@@ -74,6 +86,9 @@ class StoreSettingsModel {
       transactionPadding: parseInt(data['transaction_padding']),
       latitude: data['store_latitude'] == null ? null : parseDouble(data['store_latitude']),
       longitude: data['store_longitude'] == null ? null : parseDouble(data['store_longitude']),
+      bankAccount: parseString(data['bank_account'] ?? data['store_bank_account'] ?? data['rekening']),
+      npwp: parseString(data['npwp'] ?? data['store_npwp']),
+      warrantyTerms: parseString(data['warranty_terms'] ?? data['terms_and_conditions']),
     );
   }
 

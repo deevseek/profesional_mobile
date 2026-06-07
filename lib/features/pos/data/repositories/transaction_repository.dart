@@ -2,34 +2,19 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.dart';
 import 'package:profesionalservis_mobile/network/dio_client.dart';
+import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 import 'package:profesionalservis_mobile/shared/utils/json_parsers.dart';
 
 final transactionRepositoryProvider = Provider<TransactionRepository>((ref) {
   return TransactionRepository(ref.watch(dioProvider));
 });
 
-class TransactionResult {
-  const TransactionResult({
-    required this.invoice,
-    required this.subtotal,
-    required this.total,
-    required this.change,
-    required this.raw,
-  });
-
-  final String invoice;
-  final int subtotal;
-  final int total;
-  final int change;
-  final Map<String, dynamic> raw;
-}
-
 class TransactionRepository {
   const TransactionRepository(this._dio);
 
   final Dio _dio;
 
-  Future<TransactionResult> createTransaction({
+  Future<TransactionModel> createTransaction({
     required List<PosCartItem> items,
     required int paidAmount,
     required String paymentMethod,
@@ -63,14 +48,13 @@ class TransactionRepository {
       },
     );
 
-    final data = unwrapDataMap(response.data);
-    return TransactionResult(
-      invoice: parseString(data['invoice'] ?? data['invoice_number']),
-      subtotal: parseInt(data['subtotal'] ?? subtotal),
-      total: parseInt(data['total'] ?? data['total_amount'] ?? payable),
-      change: parseInt(data['change'] ?? data['change_amount']),
-      raw: data,
-    );
+    final unwrapped = unwrapDataMap(response.data);
+    final transactionMap = parseMap(unwrapped['transaction']);
+    final data = transactionMap.isEmpty ? unwrapped : transactionMap;
+    if (data.isEmpty) {
+      throw const FormatException('Response transaksi tidak valid.');
+    }
+    return TransactionModel.fromJson(data);
   }
 
   String _normalizePaymentMethod(String value) {

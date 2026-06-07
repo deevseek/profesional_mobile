@@ -8,6 +8,7 @@ import 'package:profesionalservis_mobile/features/pos/data/models/dashboard_summ
 import 'package:profesionalservis_mobile/features/pos/data/models/pos_cart_item.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/pos_provider.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/providers/dashboard_provider.dart';
+import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_preview_dialog.dart';
 import 'package:profesionalservis_mobile/features/product/data/models/product_model.dart';
 import 'package:profesionalservis_mobile/features/product/presentation/pages/product_page.dart';
 import 'package:profesionalservis_mobile/features/settings/presentation/pages/settings_page.dart';
@@ -30,7 +31,7 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
     DashboardMenuItem(label: 'Kasir (POS)', icon: Icons.point_of_sale_rounded),
     DashboardMenuItem(label: 'Produk', icon: Icons.inventory_2_rounded),
     DashboardMenuItem(label: 'Pelanggan', icon: Icons.people_alt_rounded),
-    DashboardMenuItem(label: 'Transaksi', icon: Icons.receipt_long_rounded),
+    DashboardMenuItem(label: 'Riwayat Transaksi', icon: Icons.receipt_long_rounded),
     DashboardMenuItem(label: 'Service', icon: Icons.build_circle_rounded),
     DashboardMenuItem(label: 'Absensi', icon: Icons.fact_check_rounded),
     DashboardMenuItem(label: 'Pengaturan', icon: Icons.settings_rounded),
@@ -46,6 +47,20 @@ class _PosPlaceholderPageState extends ConsumerState<PosPlaceholderPage> {
       appBar: AppBar(
         title: const Text('Dashboard'),
         actions: [
+          IconButton(
+            tooltip: 'Cetak Struk Terakhir',
+            onPressed: () {
+              final transaction = ref.read(posProvider).lastPaidTransaction;
+              if (transaction == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Belum ada transaksi terakhir.')),
+                );
+                return;
+              }
+              showTransactionReceipt(context, ref, transaction);
+            },
+            icon: const Icon(Icons.receipt_long_rounded),
+          ),
           IconButton(
             tooltip: 'Logout',
             onPressed: () async {
@@ -594,14 +609,14 @@ class _CartItemTile extends StatelessWidget {
   }
 }
 
-class _CartSummary extends StatelessWidget {
+class _CartSummary extends ConsumerWidget {
   const _CartSummary({required this.state, required this.notifier});
 
   final PosState state;
   final PosNotifier notifier;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
@@ -624,6 +639,23 @@ class _CartSummary extends StatelessWidget {
             ],
           ),
           _SummaryRow(label: 'Cabang', value: state.selectedBranch.trim().isEmpty ? 'Cabang Pusat' : state.selectedBranch),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SegmentedButton<PosPaymentMethod>(
+                showSelectedIcon: false,
+                segments: PosPaymentMethod.values
+                    .map((method) => ButtonSegment<PosPaymentMethod>(value: method, label: Text(method.label)))
+                    .toList(growable: false),
+                selected: {state.selectedPaymentMethod},
+                onSelectionChanged: (selection) => notifier.setPaymentMethod(selection.first),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const _PaidAmountField(),
+          const SizedBox(height: 8),
           _SummaryRow(label: 'Pembayaran', value: state.selectedPaymentMethod.label),
           _SummaryRow(label: 'Subtotal', value: _money(state.subtotal)),
           _SummaryRow(label: 'Pajak', value: _money(state.taxAmount)),
@@ -672,20 +704,40 @@ class _CartSummary extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: state.cartItems.isEmpty || state.isSubmittingCheckout
-                  ? null
-                  : () => _showCheckoutDialog(context: context, state: state, notifier: notifier),
-              icon: state.isSubmittingCheckout
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.receipt_long_rounded),
-              label: const Text('Checkout'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final transaction = ref.read(posProvider).lastPaidTransaction;
+                    if (transaction == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Selesaikan pembayaran terlebih dahulu.')),
+                      );
+                      return;
+                    }
+                    showTransactionReceipt(context, ref, transaction);
+                  },
+                  icon: const Icon(Icons.print_rounded),
+                  label: const Text('Cetak Struk'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: state.cartItems.isEmpty || state.isSubmittingCheckout
+                      ? null
+                      : () => _processCheckout(context: context, ref: ref, notifier: notifier),
+                  icon: state.isSubmittingCheckout
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.payments_rounded),
+                  label: const Text('Bayar'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -693,38 +745,31 @@ class _CartSummary extends StatelessWidget {
   }
 }
 
-Future<void> _showCheckoutDialog({
+Future<void> _processCheckout({
   required BuildContext context,
-  required PosState state,
+  required WidgetRef ref,
   required PosNotifier notifier,
 }) async {
-  final paidController = TextEditingController(text: state.total.toString());
+  final before = ref.read(posProvider);
+  if (before.cartItems.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Keranjang masih kosong.')));
+    return;
+  }
+  if (before.effectivePaidAmount < before.total) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nominal bayar kurang.')));
+    return;
+  }
 
-  final shouldCheckout = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Konfirmasi checkout'),
-      content: TextField(
-        controller: paidController,
-        keyboardType: TextInputType.number,
-        decoration: const InputDecoration(labelText: 'Uang dibayar'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Batal'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('Proses'),
-        ),
-      ],
-    ),
-  );
-
-  if (shouldCheckout == true) {
-    final paid = int.tryParse(paidController.text.trim()) ?? 0;
-    await notifier.checkout(paidAmount: paid);
+  final success = await notifier.checkout();
+  if (!context.mounted) return;
+  final after = ref.read(posProvider);
+  if (!success) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(after.errorMessage ?? 'Transaksi gagal.')));
+    return;
+  }
+  final transaction = after.lastPaidTransaction;
+  if (transaction != null) {
+    await showTransactionReceipt(context, ref, transaction);
   }
 }
 
@@ -762,6 +807,77 @@ Future<void> _showNumberEditor({
   }
 }
 
+
+
+class _PaidAmountField extends ConsumerStatefulWidget {
+  const _PaidAmountField();
+
+  @override
+  ConsumerState<_PaidAmountField> createState() => _PaidAmountFieldState();
+}
+
+class _PaidAmountFieldState extends ConsumerState<_PaidAmountField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    final state = ref.read(posProvider);
+    _controller = TextEditingController(text: state.paidAmount > 0 ? _formatNumberPlain(state.paidAmount) : '');
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        final amount = ref.read(posProvider).paidAmount;
+        final nextText = amount > 0 ? _formatNumberPlain(amount) : '';
+        if (_controller.text != nextText) {
+          _controller.text = nextText;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<double>(posProvider.select((s) => s.paidAmount), (prev, next) {
+      if (_focusNode.hasFocus) return;
+      final nextText = next > 0 ? _formatNumberPlain(next) : '';
+      if (_controller.text != nextText) {
+        _controller.text = nextText;
+      }
+    });
+
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        labelText: 'Nominal Bayar',
+        prefixText: 'Rp ',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (value) {
+        ref.read(posProvider.notifier).setPaidAmount(parseCurrencyInput(value));
+      },
+    );
+  }
+}
+
+double parseCurrencyInput(String value) {
+  final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+  if (clean.isEmpty) return 0;
+  return double.tryParse(clean) ?? 0;
+}
+
+String _formatNumberPlain(num value) => value.round().toString();
 
 class _EmptyStatePanel extends StatelessWidget {
   const _EmptyStatePanel({
