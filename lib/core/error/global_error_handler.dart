@@ -12,6 +12,11 @@ class GlobalErrorHandler {
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
       handleFlutterError(details);
+
+      if (_isFrameworkLayoutError(details.exceptionAsString())) {
+        return;
+      }
+
       showErrorSnackbar(
         kReleaseMode
             ? 'Terjadi kesalahan. Mohon coba kembali.'
@@ -26,6 +31,11 @@ class GlobalErrorHandler {
             onReload: () {},
           ),
         );
+  }
+
+  static bool _isFrameworkLayoutError(String message) {
+    return message.contains('RenderFlex overflowed') ||
+        message.contains('A RenderFlex overflowed');
   }
 
   static void handleFlutterError(FlutterErrorDetails details) {

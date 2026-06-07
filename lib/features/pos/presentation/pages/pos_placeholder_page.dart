@@ -274,22 +274,10 @@ class _ProductPanel extends StatelessWidget {
                     title: 'Belum ada produk',
                     subtitle: 'Tambahkan produk atau sinkronkan data dari server.',
                   )
-                : GridView.builder(
-              itemCount: state.filteredProducts.length,
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 260,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 0.98,
-              ),
-              itemBuilder: (context, index) {
-                final product = state.filteredProducts[index];
-                return _ProductGridItem(
-                  product: product,
-                  onTap: () => notifier.addToCart(product),
-                );
-              },
-            ),
+                : _ProductGrid(
+                    products: state.filteredProducts,
+                    onTap: notifier.addToCart,
+                  ),
           ),
         ],
       ),
@@ -346,6 +334,48 @@ class _CartPanel extends StatelessWidget {
   }
 }
 
+class _ProductGrid extends StatelessWidget {
+  const _ProductGrid({required this.products, required this.onTap});
+
+  final List<ProductModel> products;
+  final ValueChanged<ProductModel> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final crossAxisCount = width >= 1100
+            ? 5
+            : width >= 800
+                ? 4
+                : width >= 520
+                    ? 3
+                    : 2;
+        final childAspectRatio = width >= 800 ? 0.95 : 0.72;
+
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 120),
+          itemCount: products.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemBuilder: (context, index) {
+            final product = products[index];
+            return _ProductGridItem(
+              product: product,
+              onTap: () => onTap(product),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 class _ProductGridItem extends StatelessWidget {
   const _ProductGridItem({required this.product, required this.onTap});
 
@@ -354,39 +384,67 @@ class _ProductGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final name = product.name.trim().isEmpty ? '-' : product.name;
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.04),
+            ),
+          ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              product.name.trim().isEmpty ? '-' : product.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+            AspectRatio(
+              aspectRatio: 2.2,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF1FB),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.inventory_2_outlined,
+                  color: Color(0xFF0B63F6),
+                ),
+              ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Text(
-              product.category.isEmpty ? 'Umum' : product.category,
+              name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF667085), fontSize: 12),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const Spacer(),
             Text(
               _money(product.price),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: const Color(0xFF0B63F6),
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Stok ${product.stock}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.blueGrey,
+                  ),
             ),
           ],
         ),
