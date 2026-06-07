@@ -27,7 +27,7 @@ class DashboardShowcasePage extends ConsumerWidget {
       },
       child: summaryAsync.when(
         loading: () => ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
           children: const [
             _DashboardHero(greeting: 'Memuat dashboard'),
             SizedBox(height: 18),
@@ -35,7 +35,7 @@ class DashboardShowcasePage extends ConsumerWidget {
           ],
         ),
         error: (error, _) => ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
           children: [
             _DashboardHero(greeting: greeting),
             const SizedBox(height: 18),
@@ -60,7 +60,7 @@ class DashboardShowcasePage extends ConsumerWidget {
           ];
           final chartValues = summary.financeIncome.isNotEmpty ? summary.financeIncome : summary.financeExpense;
           return ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
             children: [
               _DashboardHero(greeting: '$greeting, ${config?.storeName ?? 'Profesional Servis'}'),
               const SizedBox(height: 18),
@@ -71,8 +71,8 @@ class DashboardShowcasePage extends ConsumerWidget {
                 ),
               _ResponsiveGrid(
                 minTileWidth: 170,
-                mobileAspect: 1.2,
-                desktopAspect: 1.35,
+                mobileAspect: 1.05,
+                desktopAspect: 1.2,
                 children: kpis.map((kpi) => KpiCard(title: kpi.$1, value: kpi.$2, icon: kpi.$3, color: kpi.$4, delta: 'API')).toList(),
               ),
               const SizedBox(height: 22),
