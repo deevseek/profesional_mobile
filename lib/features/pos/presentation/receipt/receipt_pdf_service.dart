@@ -2,17 +2,17 @@ import 'dart:typed_data';
 
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:profesionalservis_mobile/features/pos/data/models/receipt_payload_model.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_format_selector.dart';
 import 'package:profesionalservis_mobile/features/pos/presentation/receipt/receipt_print_service.dart';
-import 'package:profesionalservis_mobile/features/settings/data/models/store_settings_model.dart';
 import 'package:profesionalservis_mobile/features/transaction/data/models/transaction_model.dart';
 
 class ReceiptPdfService {
   const ReceiptPdfService._();
 
   static Future<Uint8List> build({
-    required TransactionModel transaction,
-    required StoreSettingsModel store,
+    required ReceiptPayloadModel payload,
     required ReceiptFormat receiptFormat,
   }) async {
     final doc = pw.Document();
@@ -23,28 +23,33 @@ class ReceiptPdfService {
     };
     final isThermal = receiptFormat != ReceiptFormat.standard;
     final margin = isThermal ? 4 * PdfPageFormat.mm : 18 * PdfPageFormat.mm;
+    final logo = await _loadLogo(payload.store.logo);
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: pageFormat,
         margin: pw.EdgeInsets.all(margin),
         build: (context) => [
-          _header(store, isThermal),
+          _header(payload.store, isThermal, logo),
           pw.SizedBox(height: 10),
-          _invoiceInfo(transaction, isThermal),
+          _invoiceInfo(payload.transaction, isThermal),
           pw.Divider(),
-          _items(transaction, isThermal),
+          _items(payload.transaction, isThermal),
           pw.Divider(),
-          _summary(transaction),
+          _warranty(payload.transaction),
           pw.SizedBox(height: 8),
-          _warranty(transaction),
+          _summary(payload.transaction),
           pw.SizedBox(height: 8),
-          _terms(store),
+          _terms(),
+          if (!isThermal) ...[
+            pw.SizedBox(height: 28),
+            _signature(payload.store),
+          ],
           pw.SizedBox(height: 12),
           pw.Center(child: pw.Text('Terima kasih atas kepercayaan Anda.')),
           pw.Center(
             child: pw.Text(
-              _storeName(store).toUpperCase(),
+              _storeName(payload.store).toUpperCase(),
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
               textAlign: pw.TextAlign.center,
             ),
@@ -56,15 +61,28 @@ class ReceiptPdfService {
     return doc.save();
   }
 
-  static pw.Widget _header(StoreSettingsModel store, bool isThermal) {
+  static Future<pw.ImageProvider?> _loadLogo(String url) async {
+    final logo = url.trim();
+    if (logo.isEmpty) return null;
+    try {
+      return await networkImage(logo);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static pw.Widget _header(StoreReceiptModel store, bool isThermal, pw.ImageProvider? logo) {
     final children = <pw.Widget>[
-      pw.Container(
-        width: isThermal ? 34 : 52,
-        height: isThermal ? 34 : 52,
-        alignment: pw.Alignment.center,
-        decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500)),
-        child: pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8)),
-      ),
+      if (logo != null)
+        pw.Image(logo, width: isThermal ? 34 : 52, height: isThermal ? 34 : 52, fit: pw.BoxFit.contain)
+      else
+        pw.Container(
+          width: isThermal ? 34 : 52,
+          height: isThermal ? 34 : 52,
+          alignment: pw.Alignment.center,
+          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey500)),
+          child: pw.Text('LOGO', style: const pw.TextStyle(fontSize: 8)),
+        ),
       pw.SizedBox(height: 6),
       pw.Text(
         _storeName(store).toUpperCase(),
@@ -73,12 +91,13 @@ class ReceiptPdfService {
       ),
       pw.Text(_safe(store.address), textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
       pw.Text('WA/Telp: ${_safe(store.phone)}', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
-      if (store.storeHours.trim().isNotEmpty)
-        pw.Text('Jam: ${store.storeHours.trim()}', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
-      if (store.bankAccount.trim().isNotEmpty)
-        pw.Text('Rekening: ${store.bankAccount.trim()}', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
-      if (store.npwp.trim().isNotEmpty)
-        pw.Text('NPWP: ${store.npwp.trim()}', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
+      if (store.hours.trim().isNotEmpty)
+        pw.Text('Jam: ${store.hours.trim()}', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
+      ...store.bankAccountNumbers.map(
+        (account) => pw.Text('Rekening: $account', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
+      ),
+      if (store.npwpNumber.trim().isNotEmpty)
+        pw.Text('NPWP: ${store.npwpNumber.trim()}', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: isThermal ? 8 : 10)),
     ];
     return pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: children);
   }
@@ -101,29 +120,52 @@ class ReceiptPdfService {
   static pw.Widget _items(TransactionModel trx, bool isThermal) {
     if (trx.items.isEmpty) return pw.Text('Tidak ada item.');
     return pw.Column(
-      children: trx.items.map((item) {
-        return pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 3),
-          child: pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        if (!isThermal)
+          pw.Row(
             children: [
-              pw.SizedBox(width: isThermal ? 18 : 42, child: pw.Text('${item.quantity}x')),
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(item.name.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('@ ${_money(item.price)}'),
-                  ],
-                ),
-              ),
-              pw.SizedBox(width: isThermal ? 58 : 90, child: pw.Text(_money(item.lineTotal), textAlign: pw.TextAlign.right)),
+              pw.Expanded(flex: 5, child: pw.Text('Item', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+              pw.Expanded(flex: 2, child: pw.Text('Qty', textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+              pw.Expanded(flex: 3, child: pw.Text('Harga', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+              pw.Expanded(flex: 3, child: pw.Text('Total', textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
             ],
           ),
-        );
-      }).toList(growable: false),
+        ...trx.items.map((item) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(vertical: 3),
+            child: isThermal ? _thermalItem(item) : _a4Item(item),
+          );
+        }),
+      ],
     );
   }
+
+  static pw.Widget _thermalItem(TransactionItemModel item) => pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(width: 18, child: pw.Text('${item.quantity}x')),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(item.name.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.Text('@ ${_money(item.price)}'),
+              ],
+            ),
+          ),
+          pw.SizedBox(width: 58, child: pw.Text(_money(item.lineTotal), textAlign: pw.TextAlign.right)),
+        ],
+      );
+
+  static pw.Widget _a4Item(TransactionItemModel item) => pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Expanded(flex: 5, child: pw.Text(item.name.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+          pw.Expanded(flex: 2, child: pw.Text('${item.quantity}', textAlign: pw.TextAlign.center)),
+          pw.Expanded(flex: 3, child: pw.Text(_money(item.price), textAlign: pw.TextAlign.right)),
+          pw.Expanded(flex: 3, child: pw.Text(_money(item.lineTotal), textAlign: pw.TextAlign.right, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+        ],
+      );
 
   static pw.Widget _summary(TransactionModel trx) => pw.Column(
         children: [
@@ -146,33 +188,38 @@ class ReceiptPdfService {
         ...warrantyItems.map((item) {
           final days = item.product?.warrantyDays ?? 0;
           final until = trx.createdAt.add(Duration(days: days));
-          return pw.Text('${item.name.toUpperCase()}: $days HARI, S/D ${receiptDateOnly(until)}');
+          return pw.Text('GARANSI ${item.name.toUpperCase()}: $days HARI, S/D ${receiptDateOnly(until)}');
         }),
       ],
     );
   }
 
-  static pw.Widget _terms(StoreSettingsModel store) {
-    final terms = store.warrantyTerms.trim();
-    if (terms.isNotEmpty) {
-      return pw.Column(
+  static pw.Widget _terms() => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text('Syarat & Ketentuan', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          ...terms.split('\n').where((line) => line.trim().isNotEmpty).map((line) => pw.Text(line.trim())),
+          pw.Text('1. Barang yang sudah dibeli tidak dapat dikembalikan.'),
+          pw.Text('2. Garansi berlaku sesuai ketentuan produk.'),
+          pw.Text('3. Simpan nota ini sebagai bukti transaksi.'),
         ],
       );
-    }
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text('Syarat & Ketentuan', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-        pw.Text('1. Barang yang sudah dibeli tidak dapat dikembalikan.'),
-        pw.Text('2. Garansi berlaku sesuai ketentuan produk.'),
-        pw.Text('3. Simpan nota ini sebagai bukti transaksi.'),
-      ],
-    );
-  }
+
+  static pw.Widget _signature(StoreReceiptModel store) => pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.end,
+        children: [
+          pw.SizedBox(
+            width: 180,
+            child: pw.Column(
+              children: [
+                pw.Text('Hormat Kami,'),
+                pw.SizedBox(height: 56),
+                pw.Container(height: 1, color: PdfColors.grey400),
+                pw.Text(_storeName(store), textAlign: pw.TextAlign.center),
+              ],
+            ),
+          ),
+        ],
+      );
 
   static pw.Widget _kv(String label, String value) => pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -192,5 +239,5 @@ class ReceiptPdfService {
 
   static String _money(num value) => receiptMoney(value);
   static String _safe(String value) => value.trim().isEmpty ? '-' : value.trim();
-  static String _storeName(StoreSettingsModel store) => store.storeName.trim().isEmpty ? 'PROFESIONAL SERVIS' : store.storeName.trim();
+  static String _storeName(StoreReceiptModel store) => store.name.trim().isEmpty ? 'PROFESIONAL SERVIS' : store.name.trim();
 }
